@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Nike</string>
+    <string name="title_activity_screens">ScreensActivity</string>
+    <string name="title_activity_sign_in_screen">Sign_In_Screen</string>
+    <string name="title_activity_sign_up_screen">SignUpScreen</string>
+    <string name="title_activity_forget_password_screen">ForgetPasswordScreen</string>
+</resources>
