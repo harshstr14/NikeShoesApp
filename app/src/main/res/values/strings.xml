@@ -4,4 +4,6 @@
     <string name="title_activity_sign_in_screen">Sign_In_Screen</string>
     <string name="title_activity_sign_up_screen">SignUpScreen</string>
     <string name="title_activity_forget_password_screen">ForgetPasswordScreen</string>
+    <string name="web_client_id">894193914867-k4kvve2d65fra5vtao2h8fhm6d46764b.apps.googleusercontent.com</string>
+    <string name="title_activity_main_screen">MainScreen</string>
 </resources>

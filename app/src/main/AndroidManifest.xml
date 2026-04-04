@@ -12,6 +12,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Nike">
         <activity
+            android:name=".MainScreen"
+            android:exported="false"
+            android:label="@string/title_activity_main_screen"
+            android:theme="@style/Theme.Nike" />
+        <activity
             android:name=".ForgetPasswordScreen"
             android:exported="false"
             android:label="@string/title_activity_forget_password_screen"

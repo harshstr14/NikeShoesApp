@@ -28,11 +28,15 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.nike.screens.ScreensActivity
 import com.example.nike.ui.theme.NikeTheme
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val firebaseUser = FirebaseAuth.getInstance().currentUser
+        val isLoggedIn = firebaseUser != null
 
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(
@@ -46,7 +50,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             NikeTheme {
                 SplashScreen {
-                    startActivity(Intent(this, ScreensActivity::class.java))
+                    if (isLoggedIn) {
+                        startActivity(Intent(this, MainScreen::class.java))
+                    } else {
+                        startActivity(Intent(this, ScreensActivity::class.java))
+                    }
                     finish()
                 }
             }
