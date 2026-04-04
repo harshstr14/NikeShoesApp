@@ -7,14 +7,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -27,7 +31,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -188,14 +194,84 @@ private fun BottomNavBar(navController: NavController) {
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Row(
+                modifier = Modifier.padding(top = 5.dp, start = 0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.take(2).forEach { item ->
+                    val isSelected = currentRoute?.let { it == item.route }
+                        ?: (item.route == BottomNavRoute.Home.route)
+
+                    Icon(
+                        painter = painterResource(item.icon),
+                        contentDescription = item.label,
+                        tint = if (isSelected) Color(0xFF5B9EE1) else Color(0xFF707B81),
+                        modifier = Modifier
+                            .padding(horizontal = 18.dp)
+                            .size(24.dp)
+                            .clickable {
+                                navController.navigate(item.route)
+                            }
+                    )
+                }
+            }
+
+            val cartItem = items[2]
+
             Icon(
-                painter = painterResource(R.drawable.home),
-                contentDescription = "Home",
-                tint =
+                painter = painterResource(cartItem.icon),
+                contentDescription = cartItem.label,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(55.dp)
+                    .offset(y = (-24).dp)
+                    .drawBehind {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF5B9EE1).copy(alpha = 0.6f),
+                                    Color(0xFF5B9EE1).copy(alpha = 0.2f),
+                                    Color.Transparent
+                                ),
+                                radius = size.maxDimension
+                            ),
+                            radius = size.maxDimension
+                        )
+                    }
+                    .background(Color(0xFF5B9EE1), shape = CircleShape)
+                    .padding(14.dp)
+                    .clickable {
+                        navController.navigate(cartItem.route)
+                    }
             )
+
+            Row(
+                modifier = Modifier.padding(top = 5.dp, end = 0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.takeLast(2).forEach { item ->
+                    val isSelected = currentRoute?.let { it == item.route }
+                        ?: (item.route == BottomNavRoute.Home.route)
+
+                    Icon(
+                        painter = painterResource(item.icon),
+                        contentDescription = item.label,
+                        tint = if (isSelected) Color(0xFF5B9EE1) else Color(0xFF707B81),
+                        modifier = Modifier
+                            .padding(horizontal = 18.dp)
+                            .size(24.dp)
+                            .clickable {
+                                navController.navigate(item.route)
+                            }
+                    )
+                }
+            }
         }
     }
 }
