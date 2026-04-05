@@ -21,8 +21,10 @@ googleid = "1.2.0"
 playServicesAuth = "21.5.1"
 coilCompose = "2.7.0"
 navigationCompose = "2.9.7"
+runtimeLivedata = "1.10.6"
 
 [libraries]
+androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }

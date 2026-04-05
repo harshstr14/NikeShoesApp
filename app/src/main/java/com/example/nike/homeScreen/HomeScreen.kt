@@ -1,0 +1,317 @@
+package com.example.nike.homeScreen
+
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.nike.R
+import com.example.nike.homeScreen.banner.BannerViewModel
+import com.example.nike.homeScreen.shoes.ShoesViewModel
+import com.example.nike.pressScale
+import com.example.nike.screens.fonts
+import kotlinx.coroutines.delay
+
+@Composable
+fun HomeScreen() {
+    val (menuInteraction, menuScale) = pressScale()
+    val (cartInteraction, cartScale) = pressScale()
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+    ) {
+        Box(
+            modifier = Modifier.padding(top = 15.dp, start = 20.dp)
+                .size(44.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFFFFFFFF))
+                .clickable(
+                    interactionSource = menuInteraction,
+                    indication = null
+                ) {
+
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.menu_icon),
+                contentDescription = "Menu Icon",
+                tint = Color(0xFF1A2530),
+                modifier = Modifier.size(16.dp)
+                    .graphicsLayer {
+                        scaleX = menuScale
+                        scaleY = menuScale
+                    }
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth()
+                .padding(top = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Store location",
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.Normal,
+                fontStyle = FontStyle.Normal,
+                color = Color(0xFF707B81),
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.location_icon),
+                    contentDescription = "Menu Icon",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.padding(bottom = 2.dp).size(16.dp)
+                )
+
+                Spacer(modifier = Modifier.width(3.dp))
+
+                Text(
+                    text = "Mondolibug, Sylhet",
+                    fontSize = 14.sp,
+                    lineHeight = 16.sp,
+                    fontFamily = fonts,
+                    fontWeight = FontWeight.SemiBold,
+                    fontStyle = FontStyle.Normal,
+                    color = Color(0xFF1A2530),
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier.padding(top = 15.dp, end = 20.dp)
+                .size(44.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFFFFFFFF))
+                .clickable(
+                    interactionSource = cartInteraction,
+                    indication = null
+                ) {
+
+                }
+                .align(Alignment.TopEnd),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.cart),
+                contentDescription = "Cart Icon",
+                tint = Color(0xFF1A2530),
+                modifier = Modifier.size(22.dp)
+                    .graphicsLayer {
+                        scaleX = cartScale
+                        scaleY = cartScale
+                    }
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(start = 25.dp, end = 25.dp, top = 75.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(Color(0xFFFFFFFF))
+                    .clickable(
+                        interactionSource = cartInteraction,
+                        indication = null
+                    ) {
+
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        modifier = Modifier
+                            .padding(start = 18.dp, end = 12.dp)
+                            .size(26.dp),
+                        painter = painterResource(R.drawable.search),
+                        contentDescription = "Search Icon",
+                        tint = Color(0xFF707B81)
+                    )
+
+                    Text(
+                        text = "Looking for shoes",
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                        fontFamily = fonts,
+                        fontWeight = FontWeight.Normal,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF707B81),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            AutoImageSlider()
+
+            CategoryChips()
+
+
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun AutoImageSlider(viewModel: BannerViewModel = viewModel()) {
+    val bannerImages by viewModel.bannerImages.observeAsState(emptyList())
+    val loading by viewModel.loading.observeAsState(false)
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchBanners()
+    }
+
+    if (bannerImages.isEmpty()) return
+
+    val fakePageCount = Int.MAX_VALUE
+    val startPage = fakePageCount / 2
+
+    val pagerState = rememberPagerState(
+        initialPage = startPage,
+        pageCount = { fakePageCount }
+    )
+
+    LaunchedEffect(pagerState) {
+        while (true) {
+            delay(3500)
+
+            if (!pagerState.isScrollInProgress) {
+                pagerState.animateScrollToPage(
+                    pagerState.currentPage + 1,
+                    animationSpec = tween(
+                        durationMillis = 900,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            }
+        }
+    }
+
+    if (!loading && bannerImages.isNotEmpty()) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 10.dp),
+            pageSpacing = 12.dp
+        ) { page ->
+            val realIndex = page % bannerImages.size
+
+            Image(
+                painter = rememberAsyncImagePainter(bannerImages[realIndex]),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().height(240.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun CategoryChips(viewModel: ShoesViewModel = viewModel()) {
+    val categories = listOf("All","Air Jordan 1","Air Force 1","Dunk","Blazer","V2K")
+    var selectedCategory by remember { mutableStateOf("All") }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 15.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(categories) { category ->
+            val isSelected = category == selectedCategory
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (isSelected) Color(0xFF1A2530) else Color(0xFFFFFFFF)
+                    )
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                        selectedCategory = category
+                        viewModel.selectCategory(category)
+                    }
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = category,
+                    color = if (isSelected) Color(0xFFFFFFFF) else Color(0xFF1A2530),
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    fontFamily = fonts,
+                    fontWeight = FontWeight.SemiBold,
+                    fontStyle = FontStyle.Normal,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+@Preview(showSystemUi = true)
+private fun HomeScreenPreview() {
+    HomeScreen()
+}
