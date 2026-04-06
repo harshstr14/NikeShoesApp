@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -47,16 +46,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.nike.R
 import com.example.nike.homeScreen.banner.BannerViewModel
 import com.example.nike.homeScreen.shoes.ShoesViewModel
+import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import kotlinx.coroutines.delay
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavHostController) {
     val (menuInteraction, menuScale) = pressScale()
     val (cartInteraction, cartScale) = pressScale()
 
@@ -141,7 +143,9 @@ fun HomeScreen() {
                     interactionSource = cartInteraction,
                     indication = null
                 ) {
-
+                    navController.navigate(BottomNavRoute.Cart.route) {
+                        launchSingleTop = true
+                    }
                 }
                 .align(Alignment.TopEnd),
             contentAlignment = Alignment.Center
@@ -172,7 +176,9 @@ fun HomeScreen() {
                         interactionSource = cartInteraction,
                         indication = null
                     ) {
-
+                        navController.navigate(BottomNavRoute.Search.route) {
+                            launchSingleTop = true
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -260,7 +266,7 @@ fun AutoImageSlider(viewModel: BannerViewModel = viewModel()) {
                 painter = rememberAsyncImagePainter(bannerImages[realIndex]),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(240.dp)
+                modifier = Modifier.fillMaxWidth().height(225.dp)
             )
         }
     }
@@ -313,5 +319,6 @@ fun CategoryChips(viewModel: ShoesViewModel = viewModel()) {
 @Composable
 @Preview(showSystemUi = true)
 private fun HomeScreenPreview() {
-    HomeScreen()
+    val navController = rememberNavController()
+    HomeScreen(navController)
 }

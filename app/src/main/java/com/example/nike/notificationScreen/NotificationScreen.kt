@@ -21,12 +21,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.nike.R
+import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 
 @Composable
-fun NotificationScreen() {
+fun NotificationScreen(navController: NavHostController) {
     val (backInteraction, backScale) = pressScale()
 
     Box(
@@ -42,7 +45,10 @@ fun NotificationScreen() {
                     interactionSource = backInteraction,
                     indication = null
                 ) {
-
+                    navController.navigate(BottomNavRoute.Home.route) {
+                        popUpTo(BottomNavRoute.Home.route)
+                        launchSingleTop = true
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -50,7 +56,9 @@ fun NotificationScreen() {
                 painter = painterResource(R.drawable.arrow_icon),
                 contentDescription = "Back Icon",
                 tint = Color(0xFF1A2530),
-                modifier = Modifier.size(15.dp)
+                modifier = Modifier
+                    .padding(end = 2.dp)
+                    .size(15.dp)
                     .graphicsLayer {
                         scaleX = backScale
                         scaleY = backScale
@@ -63,12 +71,25 @@ fun NotificationScreen() {
                 .padding(top = 26.dp)
                 .align(Alignment.TopCenter),
             text = "Notification",
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             lineHeight = 22.sp,
             fontFamily = fonts,
             fontWeight = FontWeight.SemiBold,
             fontStyle = FontStyle.Normal,
             color = Color(0xFF1A2530),
+        )
+
+        Text(
+            modifier = Modifier
+                .padding(top = 30.dp, end = 25.dp)
+                .align(Alignment.TopEnd),
+            text = "Clear All",
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+            fontFamily = fonts,
+            fontWeight = FontWeight.SemiBold,
+            fontStyle = FontStyle.Normal,
+            color = Color(0xFF5B9EE1),
         )
     }
 }
@@ -76,5 +97,6 @@ fun NotificationScreen() {
 @Composable
 @Preview(showSystemUi = true)
 private fun NotificationScreenPreview() {
-    NotificationScreen()
+    val navController = rememberNavController()
+    NotificationScreen(navController)
 }

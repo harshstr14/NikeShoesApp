@@ -21,12 +21,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.nike.R
+import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 
 @Composable
-fun FavouriteScreen() {
+fun FavouriteScreen(navController: NavHostController) {
     val (backInteraction, backScale) = pressScale()
     val (heartInteraction, heartScale) = pressScale()
 
@@ -43,7 +46,10 @@ fun FavouriteScreen() {
                     interactionSource = backInteraction,
                     indication = null
                 ) {
-
+                    navController.navigate(BottomNavRoute.Home.route) {
+                        popUpTo(BottomNavRoute.Home.route)
+                        launchSingleTop = true
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -51,7 +57,9 @@ fun FavouriteScreen() {
                 painter = painterResource(R.drawable.arrow_icon),
                 contentDescription = "Back Icon",
                 tint = Color(0xFF1A2530),
-                modifier = Modifier.size(15.dp)
+                modifier = Modifier
+                    .padding(end = 2.dp)
+                    .size(15.dp)
                     .graphicsLayer {
                         scaleX = backScale
                         scaleY = backScale
@@ -64,7 +72,7 @@ fun FavouriteScreen() {
                 .padding(top = 26.dp)
                 .align(Alignment.TopCenter),
             text = "Favourite",
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             lineHeight = 22.sp,
             fontFamily = fonts,
             fontWeight = FontWeight.SemiBold,
@@ -103,5 +111,6 @@ fun FavouriteScreen() {
 @Composable
 @Preview(showSystemUi = true)
 private fun FavouriteScreenPreview() {
-    FavouriteScreen()
+    val navController = rememberNavController()
+    FavouriteScreen(navController)
 }

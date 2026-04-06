@@ -67,6 +67,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.nike.cartScreen.CartScreen
 import com.example.nike.favouriteScreen.FavouriteScreen
 import com.example.nike.homeScreen.HomeScreen
 import com.example.nike.navigation.BottomItem
@@ -74,6 +75,7 @@ import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.notificationScreen.NotificationScreen
 import com.example.nike.profileScreen.ProfileScreen
 import com.example.nike.screens.fonts
+import com.example.nike.searchScreen.SearchScreen
 import com.example.nike.ui.theme.NikeTheme
 
 class MainScreen : ComponentActivity() {
@@ -224,23 +226,27 @@ private fun Main_Screen() {
                 }
             ) {
                 composable(BottomNavRoute.Home.route) {
-                    HomeScreen()
+                    HomeScreen(navController)
                 }
 
                 composable(BottomNavRoute.Favourites.route) {
-                    FavouriteScreen()
+                    FavouriteScreen(navController)
                 }
 
                 composable(BottomNavRoute.Cart.route) {
-
+                    CartScreen(navController)
                 }
 
                 composable(BottomNavRoute.Notification.route) {
-                    NotificationScreen()
+                    NotificationScreen(navController)
                 }
 
                 composable(BottomNavRoute.Profile.route) {
-                    ProfileScreen()
+                    ProfileScreen(navController)
+                }
+
+                composable(BottomNavRoute.Search.route) {
+                    SearchScreen(navController)
                 }
             }
         }
@@ -468,7 +474,17 @@ private fun BottomNavBar(navController: NavController) {
                         interactionSource = cartInteraction,
                         indication = null
                     ) {
-                        navController.navigate(cartItem.route)
+                        val isSelected = currentRoute?.let { it == cartItem.route }
+                            ?: (cartItem.route == BottomNavRoute.Home.route)
+
+                        if (!isSelected) {
+                            navController.navigate(cartItem.route) {
+                                popUpTo(navController.graph.startDestinationId)
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+
                     }
             )
 

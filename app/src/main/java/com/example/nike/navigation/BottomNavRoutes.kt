@@ -6,4 +6,5 @@ sealed class BottomNavRoute(val route: String) {
     object Cart : BottomNavRoute("cart")
     object Notification : BottomNavRoute("notification")
     object Profile : BottomNavRoute("profile")
+    object Search : BottomNavRoute("search")
 }

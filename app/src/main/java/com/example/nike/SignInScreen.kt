@@ -225,7 +225,9 @@ private fun Sign_InScreen(onGoogleSignIn: () -> Unit) {
                     painter = painterResource(R.drawable.arrow_icon),
                     contentDescription = "Back Icon",
                     tint = Color(0xFF1A2530),
-                    modifier = Modifier.size(15.dp)
+                    modifier = Modifier
+                        .padding(end = 2.dp)
+                        .size(15.dp)
                         .graphicsLayer {
                             scaleX = backScale
                             scaleY = backScale
