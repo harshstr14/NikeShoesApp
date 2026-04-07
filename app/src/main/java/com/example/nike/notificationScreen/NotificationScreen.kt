@@ -81,11 +81,11 @@ fun NotificationScreen(navController: NavHostController) {
 
         Text(
             modifier = Modifier
-                .padding(top = 30.dp, end = 25.dp)
+                .padding(top = 27.dp, end = 25.dp)
                 .align(Alignment.TopEnd),
             text = "Clear All",
             fontSize = 13.sp,
-            lineHeight = 16.sp,
+            lineHeight = 22.sp,
             fontFamily = fonts,
             fontWeight = FontWeight.SemiBold,
             fontStyle = FontStyle.Normal,

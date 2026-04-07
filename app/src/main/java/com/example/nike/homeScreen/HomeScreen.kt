@@ -1,5 +1,6 @@
 package com.example.nike.homeScreen
 
+import android.content.Intent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -16,10 +17,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -36,9 +41,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +57,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.nike.R
+import com.example.nike.cartScreen.MyCartScreen
+import com.example.nike.detailsScreen.DetailsScreen
 import com.example.nike.homeScreen.banner.BannerViewModel
 import com.example.nike.homeScreen.shoes.ShoesViewModel
 import com.example.nike.navigation.BottomNavRoute
@@ -59,6 +68,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
+    val context = LocalContext.current
     val (menuInteraction, menuScale) = pressScale()
     val (cartInteraction, cartScale) = pressScale()
 
@@ -143,9 +153,10 @@ fun HomeScreen(navController: NavHostController) {
                     interactionSource = cartInteraction,
                     indication = null
                 ) {
-                    navController.navigate(BottomNavRoute.Cart.route) {
-                        launchSingleTop = true
+                    val intent = Intent(context, MyCartScreen::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     }
+                    context.startActivity(intent)
                 }
                 .align(Alignment.TopEnd),
             contentAlignment = Alignment.Center
@@ -213,7 +224,9 @@ fun HomeScreen(navController: NavHostController) {
 
             CategoryChips()
 
+            Spacer(modifier = Modifier.height(15.dp))
 
+            ShoesSection()
         }
     }
 }
@@ -312,6 +325,137 @@ fun CategoryChips(viewModel: ShoesViewModel = viewModel()) {
                     fontStyle = FontStyle.Normal,
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ShoesSection(viewModel: ShoesViewModel = viewModel()) {
+    val context = LocalContext.current
+    val shoes by viewModel.shoes.observeAsState(emptyList())
+    val loading by viewModel.loading.observeAsState(false)
+
+    LaunchedEffect(Unit) {
+        viewModel.selectCategory("All")
+    }
+
+    if (loading) {
+        Text(
+            text = "Loading...",
+            modifier = Modifier.padding(20.dp)
+        )
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(start = 25.dp, end = 25.dp, bottom = 125.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(shoes) { shoe ->
+                ShoeCard(
+                    shoe = shoe,
+                    onClick = {
+                        val intent = Intent(context, DetailsScreen::class.java).apply {
+                            putExtra("shoe", shoe)
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        context.startActivity(intent)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ShoeCard(shoe: Shoe, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(224.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() }
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFFFFFFFF))
+    ) {
+        Column {
+            Image(
+                painter = rememberAsyncImagePainter(shoe.imageURL),
+                contentDescription = shoe.name,
+                modifier = Modifier
+                    .size(150.dp)
+                    .offset(x = (-10).dp)
+                    .rotate(-28f),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 14.dp)
+                    .offset(y = (-8).dp),
+                text = shoe.name,
+                fontSize = 14.sp,
+                lineHeight = 16.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.SemiBold,
+                fontStyle = FontStyle.Normal,
+                maxLines = 1,
+                color = Color(0xFF1A2530)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 14.dp)
+                    .offset(y = (-8).dp),
+                text = shoe.type,
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.Normal,
+                fontStyle = FontStyle.Normal,
+                maxLines = 1,
+                color = Color(0xFF707B81)
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 14.dp)
+                    .offset(y = (-8).dp),
+                text = "$${shoe.price}",
+                fontSize = 14.sp,
+                lineHeight = 16.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.Bold,
+                fontStyle = FontStyle.Normal,
+                color = Color(0xFF1A2530),
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(32.dp)
+                .clip(RoundedCornerShape(topStart = 10.dp))
+                .background(Color(0xFF1A2530)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.arrow_right),
+                contentDescription = "Go",
+                tint = Color(0xFFFFFFFF),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

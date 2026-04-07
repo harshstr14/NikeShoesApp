@@ -1,5 +1,6 @@
 package com.example.nike
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +57,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -67,7 +70,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.nike.cartScreen.CartScreen
+import com.example.nike.cartScreen.MyCartScreen
 import com.example.nike.favouriteScreen.FavouriteScreen
 import com.example.nike.homeScreen.HomeScreen
 import com.example.nike.navigation.BottomItem
@@ -77,6 +80,7 @@ import com.example.nike.profileScreen.ProfileScreen
 import com.example.nike.screens.fonts
 import com.example.nike.searchScreen.SearchScreen
 import com.example.nike.ui.theme.NikeTheme
+import kotlinx.coroutines.launch
 
 class MainScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,7 +119,7 @@ private fun Main_Screen() {
                     .width(280.dp),
                 drawerContainerColor = Color.Transparent
             ) {
-                DrawerContent()
+                DrawerContent(navController, drawerState)
             }
         }
     ) {
@@ -233,10 +237,6 @@ private fun Main_Screen() {
                     FavouriteScreen(navController)
                 }
 
-                composable(BottomNavRoute.Cart.route) {
-                    CartScreen(navController)
-                }
-
                 composable(BottomNavRoute.Notification.route) {
                     NotificationScreen(navController)
                 }
@@ -254,7 +254,11 @@ private fun Main_Screen() {
 }
 
 @Composable
-fun DrawerContent() {
+fun DrawerContent(navController: NavController, drawerState: DrawerState) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -304,12 +308,85 @@ fun DrawerContent() {
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        DrawerItem("Profile", R.drawable.user)
-        DrawerItem("Home Page", R.drawable.home)
-        DrawerItem("My Cart", R.drawable.cart)
-        DrawerItem("Favorite", R.drawable.favourite)
-        DrawerItem("Orders", R.drawable.delivery_icon)
-        DrawerItem("Notifications", R.drawable.notification)
+        DrawerItem(
+            title = "Profile",
+            icon = R.drawable.user,
+            isSelected = currentRoute == "profile"
+        ) {
+            scope.launch {
+                drawerState.close()
+            }
+            navController.navigate("profile") {
+                popUpTo("profile") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+
+        DrawerItem(
+            title = "Home Page",
+            icon = R.drawable.home,
+            isSelected = currentRoute == "home"
+        ) {
+            scope.launch {
+                drawerState.close()
+            }
+            navController.navigate("home") {
+                popUpTo("home") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+
+        DrawerItem(
+            title = "My Cart",
+            icon = R.drawable.cart,
+            isSelected = false
+        ) {
+            scope.launch {
+                drawerState.close()
+            }
+            val intent = Intent(context, MyCartScreen::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            context.startActivity(intent)
+        }
+
+        DrawerItem(
+            title = "Favorite",
+            icon = R.drawable.favourite,
+            isSelected = currentRoute == "favourites"
+        ) {
+            scope.launch {
+                drawerState.close()
+            }
+            navController.navigate("favourites") {
+                popUpTo("favourites") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+
+        DrawerItem(
+            title = "Orders",
+            icon = R.drawable.delivery_icon,
+            isSelected = false
+        ) {
+            scope.launch {
+                drawerState.close()
+            }
+        }
+
+        DrawerItem(
+            title = "Notifications",
+            icon = R.drawable.notification,
+            isSelected = currentRoute == "notification"
+        ) {
+            scope.launch {
+                drawerState.close()
+            }
+            navController.navigate("notification") {
+                popUpTo("notification") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -321,13 +398,22 @@ fun DrawerContent() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        DrawerItem("Sign Out", R.drawable.signout_icon)
+        DrawerItem(
+            title = "Sign Out",
+            icon = R.drawable.signout_icon,
+            isSelected = false
+        ) {
+
+        }
     }
 }
 
 @Composable
-fun DrawerItem(title: String, icon: Int) {
+fun DrawerItem(title: String, icon: Int, isSelected: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
+
+    val textSize = if (isSelected) 17.sp else 15.sp
+    val iconSize = if (isSelected) 26.dp else 24.dp
 
     Row(
         modifier = Modifier
@@ -335,12 +421,14 @@ fun DrawerItem(title: String, icon: Int) {
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { }
+            ) {
+                onClick()
+            }
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(iconSize),
             painter = painterResource(icon), contentDescription = title,
             tint = Color(0xFF707B81)
         )
@@ -350,7 +438,7 @@ fun DrawerItem(title: String, icon: Int) {
         Text(
             text = title,
             color = Color(0xFFFFFFFF),
-            fontSize = 16.sp,
+            fontSize = textSize,
             lineHeight = 18.sp,
             fontFamily = fonts,
             fontWeight = FontWeight.Normal,
@@ -361,6 +449,7 @@ fun DrawerItem(title: String, icon: Int) {
 
 @Composable
 private fun BottomNavBar(navController: NavController) {
+    val context = LocalContext.current
     val currentRoute =
         navController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -478,13 +567,11 @@ private fun BottomNavBar(navController: NavController) {
                             ?: (cartItem.route == BottomNavRoute.Home.route)
 
                         if (!isSelected) {
-                            navController.navigate(cartItem.route) {
-                                popUpTo(navController.graph.startDestinationId)
-                                launchSingleTop = true
-                                restoreState = true
+                            val intent = Intent(context, MyCartScreen::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                             }
+                            context.startActivity(intent)
                         }
-
                     }
             )
 

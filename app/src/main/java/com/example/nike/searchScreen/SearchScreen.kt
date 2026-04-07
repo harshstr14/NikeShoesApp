@@ -143,7 +143,7 @@ fun SearchScreen(navController: NavHostController) {
 
         Text(
             modifier = Modifier
-                .padding(top = 30.dp, end = 25.dp)
+                .padding(top = 27.dp, end = 25.dp)
                 .align(Alignment.TopEnd)
                 .clickable(
                     interactionSource = clearALlInteraction,
@@ -160,7 +160,7 @@ fun SearchScreen(navController: NavHostController) {
                 ),
             text = "Cancel",
             fontSize = 13.sp,
-            lineHeight = 16.sp,
+            lineHeight = 22.sp,
             fontFamily = fonts,
             fontWeight = FontWeight.SemiBold,
             fontStyle = FontStyle.Normal,
@@ -237,7 +237,7 @@ private fun SearchBar(
                     fontFamily = fonts,
                     fontWeight = FontWeight.Normal,
                     fontStyle = FontStyle.Normal,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     lineHeight = 20.sp,
                     color = Color(0xFF707B81)
                 ),
@@ -331,7 +331,8 @@ fun SearchHistoryList(
                     Icon(
                         painter = painterResource(R.drawable.time_icon),
                         contentDescription = null,
-                        tint = Color(0xFF707B81)
+                        tint = Color(0xFF707B81),
+                        modifier = Modifier.padding(start = 5.dp)
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))

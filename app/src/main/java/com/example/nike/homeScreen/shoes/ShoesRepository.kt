@@ -39,6 +39,15 @@ class ShoesRepository {
                             }
                         }
 
+                        val shoeImages = mutableListOf<String>()
+                        val shoeImagesSnapshot = shoeSnapshot.child("shoeImages")
+
+                        for (shoeImage in shoeImagesSnapshot.children) {
+                            shoeImage.getValue(String::class.java)?.let {
+                                shoeImages.add(it)
+                            }
+                        }
+
                         val shoe = Shoe(
                             id = id,
                             name = name,
@@ -46,7 +55,8 @@ class ShoesRepository {
                             imageURL = imageURL,
                             price = price,
                             type = type,
-                            productDetails = productDetails
+                            productDetails = productDetails,
+                            shoeImages = shoeImages
                         )
 
                         shoesList.add(shoe)

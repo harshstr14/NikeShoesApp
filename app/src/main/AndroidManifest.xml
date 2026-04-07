@@ -12,6 +12,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Nike">
         <activity
+            android:name=".detailsScreen.DetailsScreen"
+            android:exported="false"
+            android:label="@string/title_activity_details_screen"
+            android:theme="@style/Theme.Nike" />
+        <activity
+            android:name=".checkoutScreen.CheckoutScreen"
+            android:exported="false"
+            android:label="@string/title_activity_checkout_screen"
+            android:theme="@style/Theme.Nike" />
+        <activity
+            android:name=".cartScreen.MyCartScreen"
+            android:exported="false"
+            android:label="@string/title_activity_my_cart_screen"
+            android:theme="@style/Theme.Nike" />
+        <activity
             android:name=".MainScreen"
             android:exported="false"
             android:label="@string/title_activity_main_screen"
