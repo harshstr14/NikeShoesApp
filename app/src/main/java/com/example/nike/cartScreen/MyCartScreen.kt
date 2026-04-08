@@ -11,7 +11,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +23,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -28,6 +34,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -38,6 +45,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -46,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.nike.R
 import com.example.nike.checkoutScreen.CheckoutScreen
 import com.example.nike.pressScale
@@ -72,6 +81,14 @@ class MyCartScreen : ComponentActivity() {
         }
     }
 }
+
+data class CartData(
+    val image: String,
+    val name: String,
+    val price: String,
+    val size: String,
+    val quantity: Int
+)
 
 @Composable
 private fun MyCart_Screen() {
@@ -187,6 +204,49 @@ private fun MyCart_Screen() {
                 fontStyle = FontStyle.Normal,
                 color = Color(0xFF1A2530),
             )
+
+            val cartItems = remember {
+                mutableStateListOf(
+                    CartData("img1", "Nike Club Max", "$64.95", "L", 1),
+                    CartData("img2", "Nike Air Max 200", "$64.95", "XL", 1),
+                    CartData("img3", "Nike Air Max", "$64.95", "XXL", 1)
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.TopCenter)
+                    .padding(vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = 70.dp, bottom = 20.dp)
+            ) {
+                items(cartItems, key = { it.name }) { item ->
+                    CartItem(
+                        image = item.image,
+                        name = item.name,
+                        price = item.price,
+                        size = item.size,
+                        quantity = item.quantity,
+
+                        onIncrease = {
+                            val index = cartItems.indexOf(item)
+                            cartItems[index] = item.copy(quantity = item.quantity + 1)
+                        },
+
+                        onDecrease = {
+                            val index = cartItems.indexOf(item)
+                            if (item.quantity > 1) {
+                                cartItems[index] = item.copy(quantity = item.quantity - 1)
+                            }
+                        },
+
+                        onDelete = {
+                            cartItems.remove(item)
+                        }
+                    )
+                }
+            }
 
             Box(
                 modifier = Modifier.fillMaxWidth()
@@ -306,6 +366,161 @@ private fun MyCart_Screen() {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun CartItem(
+    image: String,
+    name: String,
+    price: String,
+    size: String,
+    quantity: Int,
+    onIncrease: () -> Unit,
+    onDecrease: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val (deleteInteraction, deleteScale) = pressScale()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(85.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFFFFFFF)),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = image,
+                contentDescription = null,
+                modifier = Modifier.size(60.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = name,
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.SemiBold,
+                fontStyle = FontStyle.Normal,
+                color = Color(0xFF1A2530)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = price,
+                fontSize = 13.sp,
+                lineHeight = 16.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.Normal,
+                fontStyle = FontStyle.Normal,
+                color = Color(0xFF1A2530)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                QuantityButton("-", onClick = onDecrease)
+
+                Text(
+                    text = quantity.toString(),
+                    modifier = Modifier.padding(horizontal = 15.dp),
+                    fontSize = 14.sp,
+                    lineHeight = 16.sp,
+                    fontFamily = fonts,
+                    fontWeight = FontWeight.SemiBold,
+                    fontStyle = FontStyle.Normal,
+                    color = Color(0xFF1A2530)
+                )
+
+                QuantityButton("+", onClick = onIncrease)
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = size,
+                fontSize = 14.sp,
+                lineHeight = 16.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.SemiBold,
+                fontStyle = FontStyle.Normal,
+                color = Color(0xFF1A2530)
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Icon(
+                painter = painterResource(R.drawable.delete_icon),
+                contentDescription = null,
+                tint = Color(0xFFFF6B6B),
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable(
+                        interactionSource = deleteInteraction,
+                        indication = null
+                    ) { onDelete() }
+                    .graphicsLayer(
+                        scaleX = deleteScale,
+                        scaleY = deleteScale
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun QuantityButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(
+                if (text == "+") Color(0xFF5B9EE1) else Color(0xFFFFFFFF)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = if (text == "+") Color(0xFFFFFFFF) else Color(0xFF828A89),
+            fontSize = 16.sp,
+            lineHeight = 16.sp,
+            fontFamily = fonts,
+            fontWeight = FontWeight.SemiBold,
+            fontStyle = FontStyle.Normal
+        )
+        Icon(
+            painter = painterResource(if (text == "+") R.drawable.plus_icon else R.drawable.minus_icon),
+            contentDescription = null,
+            tint = Color.Unspecified,
+            modifier = Modifier
+                .size(8.dp)
+        )
     }
 }
 

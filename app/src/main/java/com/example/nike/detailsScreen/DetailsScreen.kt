@@ -9,7 +9,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,6 +29,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -85,7 +87,7 @@ class DetailsScreen : ComponentActivity() {
             intent.getParcelableExtra("shoe", Shoe::class.java)
         } else {
             @Suppress("DEPRECATION")
-            intent.getParcelableExtra<Shoe>("shoe")
+            intent.getParcelableExtra("shoe")
         }
 
         setContent {
@@ -107,7 +109,10 @@ private fun Details_Screen(shoe: Shoe?) {
     val interactionSource = remember { MutableInteractionSource() }
 
     val sizes = listOf(38, 39, 40, 41, 42, 43)
-    var selectedSize by remember { mutableStateOf(40) }
+    var selectedSize by remember { mutableIntStateOf(40) }
+    val allImages = listOfNotNull(shoe?.imageURL) + (shoe?.shoeImages ?: emptyList())
+    val images = allImages.drop(1)
+    val pagerState = rememberPagerState(pageCount = { images.size })
 
     Scaffold(
         containerColor = colorResource(id = R.color.background_color),
@@ -231,19 +236,35 @@ private fun Details_Screen(shoe: Shoe?) {
                 )
             }
 
-            AsyncImage(
-                model = shoe?.imageURL,
-                contentDescription = shoe?.name,
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .rotate(-20f)
-                    .size(320.dp)
-                    .offset(x = (-16).dp, y = (-15).dp)
-            )
+                    .height(320.dp)
+            ) { page ->
+                val isFirst = page == 0
+
+                AsyncImage(
+                    model = images[page],
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isFirst) {
+                                Modifier
+                                    .rotate(-20f)
+                                    .offset(x = (-16).dp, y = (-15).dp)
+                            } else {
+                                Modifier
+                            }
+                        ),
+                    contentScale = ContentScale.Fit
+                )
+            }
 
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .fillMaxHeight(1.35f)
+                    .fillMaxHeight(1.0f)
                     .padding(top = 295.dp)
                     .background(
                         color = Color(0xFFFFFFFF),
@@ -329,58 +350,9 @@ private fun Details_Screen(shoe: Shoe?) {
 
                 ShoeRow(shoes)
 
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Size",
-                        fontSize = 18.sp,
-                        lineHeight = 20.sp,
-                        fontFamily = fonts,
-                        fontWeight = FontWeight.Bold,
-                        fontStyle = FontStyle.Normal,
-                        color = Color(0xFF1A2530),
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp),
-                        text = "EU",
-                        fontSize = 14.sp,
-                        lineHeight = 16.sp,
-                        fontFamily = fonts,
-                        fontWeight = FontWeight.SemiBold,
-                        fontStyle = FontStyle.Normal,
-                        color = Color(0xFF1A2530),
-                    )
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp),
-                        text = "US",
-                        fontSize = 14.sp,
-                        lineHeight = 16.sp,
-                        fontFamily = fonts,
-                        fontWeight = FontWeight.SemiBold,
-                        fontStyle = FontStyle.Normal,
-                        color = Color(0xFF707B81),
-                    )
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp),
-                        text = "UK",
-                        fontSize = 14.sp,
-                        lineHeight = 16.sp,
-                        fontFamily = fonts,
-                        fontWeight = FontWeight.SemiBold,
-                        fontStyle = FontStyle.Normal,
-                        color = Color(0xFF707B81),
-                    )
-                }
+                SizeHeader()
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -390,11 +362,12 @@ private fun Details_Screen(shoe: Shoe?) {
                 ) {
                     LazyRow(
                         modifier = Modifier.wrapContentWidth(),
+                        contentPadding = PaddingValues(horizontal = 25.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(sizes) { size ->
                             SizeItem(
-                                size = size,
+                                textSize = size,
                                 isSelected = size == selectedSize,
                                 onClick = { selectedSize = size }
                             )
@@ -462,8 +435,53 @@ private fun Details_Screen(shoe: Shoe?) {
 }
 
 @Composable
+fun SizeHeader() {
+    var selectedUnit by remember { mutableStateOf("EU") }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Size",
+            fontSize = 18.sp,
+            lineHeight = 20.sp,
+            fontFamily = fonts,
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Normal,
+            color = Color(0xFF1A2530),
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        listOf("EU", "US", "UK").forEach { unit ->
+            val isSelected = unit == selectedUnit
+
+            Text(
+                text = unit,
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) { selectedUnit = unit },
+                fontSize = 14.sp,
+                lineHeight = 16.sp,
+                fontFamily = fonts,
+                fontWeight = FontWeight.SemiBold,
+                fontStyle = FontStyle.Normal,
+                color = if (isSelected) Color(0xFF1A2530) else Color(0xFF707B81),
+            )
+        }
+    }
+}
+
+@Composable
 fun SizeItem(
-    size: Int,
+    textSize: Int,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -486,7 +504,7 @@ fun SizeItem(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = size.toString(),
+            text = textSize.toString(),
             color = textColor,
             fontSize = 14.sp,
             lineHeight = 16.sp,
@@ -513,7 +531,7 @@ fun ShoeRow(shoes: List<String>) {
 fun ShoeItem(image: String) {
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(60.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFFF8F9FA)),
         contentAlignment = Alignment.Center
@@ -522,7 +540,7 @@ fun ShoeItem(image: String) {
             model = image,
             contentDescription = null,
             modifier = Modifier
-                .size(70.dp),
+                .size(80.dp),
             contentScale = ContentScale.Fit
         )
     }
