@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,16 +35,19 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -54,12 +58,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.nike.R
 import com.example.nike.checkoutScreen.CheckoutScreen
+import com.example.nike.homeScreen.user.UserViewModel
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import com.example.nike.ui.theme.NikeTheme
+import java.util.Locale
 
 class MyCartScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,22 +94,16 @@ class MyCartScreen : ComponentActivity() {
     }
 }
 
-data class CartData(
-    val image: String,
-    val name: String,
-    val price: String,
-    val size: String,
-    val quantity: Int
-)
-
 @Composable
-private fun MyCart_Screen() {
+private fun MyCart_Screen(viewModel: UserViewModel = viewModel()) {
     val context = LocalContext.current
     val activity = context as? Activity
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val (backInteraction, backScale) = pressScale()
     val interactionSource = remember { MutableInteractionSource() }
+
+    val cartState by viewModel.cartState.collectAsState()
 
     Scaffold(
         containerColor = colorResource(id = R.color.background_color),
@@ -175,7 +181,8 @@ private fun MyCart_Screen() {
                         indication = null
                     ) {
                         activity?.finish()
-                    },
+                    }
+                    .zIndex(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -205,46 +212,110 @@ private fun MyCart_Screen() {
                 color = Color(0xFF1A2530),
             )
 
-            val cartItems = remember {
-                mutableStateListOf(
-                    CartData("img1", "Nike Club Max", "$64.95", "L", 1),
-                    CartData("img2", "Nike Air Max 200", "$64.95", "XL", 1),
-                    CartData("img3", "Nike Air Max", "$64.95", "XXL", 1)
-                )
-            }
+            val list = (cartState as? CartUiState.Success)?.data ?: emptyList()
+            val subtotal = list.sumOf { it.price * it.quantity }
+            val shipping = if (list.isEmpty()) 0.0 else 40.90
+            val total = subtotal + shipping
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .align(Alignment.TopCenter)
-                    .padding(vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 70.dp, bottom = 20.dp)
-            ) {
-                items(cartItems, key = { it.name }) { item ->
-                    CartItem(
-                        image = item.image,
-                        name = item.name,
-                        price = item.price,
-                        size = item.size,
-                        quantity = item.quantity,
+            when (cartState) {
+                is CartUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                            .padding(top = 60.dp, bottom = 240.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val composition by rememberLottieComposition(
+                            LottieCompositionSpec.RawRes (R.raw.nike_logo_animation)
+                        )
 
-                        onIncrease = {
-                            val index = cartItems.indexOf(item)
-                            cartItems[index] = item.copy(quantity = item.quantity + 1)
-                        },
-
-                        onDecrease = {
-                            val index = cartItems.indexOf(item)
-                            if (item.quantity > 1) {
-                                cartItems[index] = item.copy(quantity = item.quantity - 1)
-                            }
-                        },
-
-                        onDelete = {
-                            cartItems.remove(item)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .size(140.dp)
+                                .clip(RectangleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            LottieAnimation(
+                                composition = composition,
+                                iterations = LottieConstants.IterateForever,
+                                modifier = Modifier
+                                    .size(140.dp)
+                                    .graphicsLayer {
+                                        scaleX = 1.2f
+                                        scaleY = 1.2f
+                                    }
+                            )
                         }
-                    )
+                    }
+                }
+
+                is CartUiState.Success -> {
+                    if (list.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize()
+                                .padding(top = 60.dp, bottom = 240.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Cart is empty",
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                fontFamily = fonts,
+                                fontWeight = FontWeight.Normal,
+                                fontStyle = FontStyle.Normal,
+                                color = Color(0xFF1A2530)
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .align(Alignment.TopCenter)
+                                .padding(top = 80.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(bottom = 250.dp)
+                        ) {
+                            items(list, key = { it.id }) { item ->
+                                CartItem(
+                                    image = item.imageURL,
+                                    name = item.name,
+                                    price = item.price,
+                                    size = item.shoeSize,
+                                    quantity = item.quantity,
+
+                                    onIncrease = {
+                                        viewModel.increaseQuantity(item)
+                                    },
+
+                                    onDecrease = {
+                                        viewModel.decreaseQuantity(item.id.toString())
+                                    },
+
+                                    onDelete = {
+                                        viewModel.removeFromCart(item.id.toString())
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                is CartUiState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                            .padding(top = 60.dp, bottom = 240.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (cartState as CartUiState.Error).message,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            fontFamily = fonts,
+                            fontWeight = FontWeight.Normal,
+                            fontStyle = FontStyle.Normal,
+                            color = Color(0xFF1A2530)
+                        )
+                    }
                 }
             }
 
@@ -274,7 +345,7 @@ private fun MyCart_Screen() {
                     modifier = Modifier
                         .padding(top = 26.dp, end = 25.dp)
                         .align(Alignment.TopEnd),
-                    text = "$1250.00",
+                    text = "$ ${String.format(Locale.US, "%.2f", subtotal)}",
                     fontSize = 16.sp,
                     lineHeight = 20.sp,
                     fontFamily = fonts,
@@ -300,7 +371,7 @@ private fun MyCart_Screen() {
                     modifier = Modifier
                         .padding(top = 66.dp, end = 25.dp)
                         .align(Alignment.TopEnd),
-                    text = "$40.90",
+                    text = "$ ${String.format(Locale.US, "%.2f", shipping)}",
                     fontSize = 16.sp,
                     lineHeight = 20.sp,
                     fontFamily = fonts,
@@ -330,7 +401,7 @@ private fun MyCart_Screen() {
                     modifier = Modifier
                         .padding(top = 120.dp, end = 25.dp)
                         .align(Alignment.TopEnd),
-                    text = "$1690.99",
+                    text = "$ ${String.format(Locale.US, "%.2f", total)}",
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
                     fontFamily = fonts,
@@ -373,8 +444,8 @@ private fun MyCart_Screen() {
 fun CartItem(
     image: String,
     name: String,
-    price: String,
-    size: String,
+    price: Double,
+    size: Int,
     quantity: Int,
     onIncrease: () -> Unit,
     onDecrease: () -> Unit,
@@ -397,7 +468,9 @@ fun CartItem(
             AsyncImage(
                 model = image,
                 contentDescription = null,
-                modifier = Modifier.size(60.dp),
+                modifier = Modifier.size(85.dp)
+                    .rotate(-20f)
+                    .offset(x = (-2).dp, y = (-5).dp),
                 contentScale = ContentScale.Fit
             )
         }
@@ -421,7 +494,7 @@ fun CartItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = price,
+                text = "$ $price",
                 fontSize = 13.sp,
                 lineHeight = 16.sp,
                 fontFamily = fonts,
@@ -456,7 +529,7 @@ fun CartItem(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = size,
+                text = "$size",
                 fontSize = 14.sp,
                 lineHeight = 16.sp,
                 fontFamily = fonts,

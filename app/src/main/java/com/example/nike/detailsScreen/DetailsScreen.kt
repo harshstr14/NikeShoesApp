@@ -40,6 +40,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,10 +64,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.nike.R
 import com.example.nike.cartScreen.MyCartScreen
 import com.example.nike.homeScreen.Shoe
+import com.example.nike.homeScreen.user.UserViewModel
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import com.example.nike.ui.theme.NikeTheme
@@ -106,6 +111,7 @@ private fun Details_Screen(shoe: Shoe?) {
     val scope = rememberCoroutineScope()
     val (backInteraction, backScale) = pressScale()
     val (cartInteraction, cartScale) = pressScale()
+    val (likeInteraction, likeScale) = pressScale()
     val interactionSource = remember { MutableInteractionSource() }
 
     val sizes = listOf(38, 39, 40, 41, 42, 43)
@@ -113,6 +119,21 @@ private fun Details_Screen(shoe: Shoe?) {
     val allImages = listOfNotNull(shoe?.imageURL) + (shoe?.shoeImages ?: emptyList())
     val images = allImages.drop(1)
     val pagerState = rememberPagerState(pageCount = { images.size })
+
+    val viewModel: UserViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState) {
+        uiState?.let {
+            snackBarHostState.showSnackbar(it)
+        }
+    }
+
+    val shoeId = shoe?.id?.toString() ?: ""
+
+    val isFavorite by viewModel
+        .observeFavorite(shoeId)
+        .collectAsState(initial = false)
 
     Scaffold(
         containerColor = colorResource(id = R.color.background_color),
@@ -134,10 +155,10 @@ private fun Details_Screen(shoe: Shoe?) {
                             .shadow(
                                 elevation = 8.dp,
                                 shape = RoundedCornerShape(10.dp),
-                                ambientColor = Color(0xFFFFFFFF),
-                                spotColor = Color(0xFFFFFFFF)
+                                ambientColor = Color(0xFFF8F9FA),
+                                spotColor = Color(0xFFF8F9FA)
                             ),
-                        containerColor = Color(0xFFFFFFFF),
+                        containerColor = Color(0xFFF8F9FA),
                         shape = RoundedCornerShape(9.dp)
                     ) {
                         Row(
@@ -145,11 +166,8 @@ private fun Details_Screen(shoe: Shoe?) {
                         ) {
                             Icon(painter = painterResource(
                                 when {
-                                    data.visuals.message.contains("name") -> R.drawable.user_icon
-                                    data.visuals.message.contains("email") -> R.drawable.email_icon
-                                    data.visuals.message.contains("Email") -> R.drawable.email_icon
-                                    data.visuals.message.contains("password") -> R.drawable.password_icon
-                                    data.visuals.message.contains("Password") -> R.drawable.password_icon
+                                    data.visuals.message.contains("favourite") -> R.drawable.favourite
+                                    data.visuals.message.contains("cart") -> R.drawable.cart
                                     else -> {
                                         R.drawable.alert_icon
                                     }
@@ -190,7 +208,8 @@ private fun Details_Screen(shoe: Shoe?) {
                         indication = null
                     ) {
                         activity?.finish()
-                    },
+                    }
+                    .zIndex(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -221,6 +240,7 @@ private fun Details_Screen(shoe: Shoe?) {
                         }
                         context.startActivity(intent)
                     }
+                    .zIndex(1f)
                     .align(Alignment.TopEnd),
                 contentAlignment = Alignment.Center
             ) {
@@ -232,6 +252,49 @@ private fun Details_Screen(shoe: Shoe?) {
                         .graphicsLayer {
                             scaleX = cartScale
                             scaleY = cartScale
+                        }
+                )
+            }
+
+            Box(
+                modifier = Modifier.padding(top = 75.dp, end = 20.dp)
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFFFFFFFF))
+                    .clickable(
+                        interactionSource = likeInteraction,
+                        indication = null
+                    ) {
+                        shoe?.let {
+                            val item = Shoe(
+                                description = it.description,
+                                id = it.id,
+                                imageURL = it.imageURL,
+                                name = it.name,
+                                type = it.type,
+                                price = it.price,
+                                shoeImages = it.shoeImages,
+                                productDetails = it.productDetails,
+                                quantity = 1,
+                                shoeSize = selectedSize
+                            )
+
+                            viewModel.toggleFavorite(item)
+                        }
+                    }
+                    .align(Alignment.TopEnd)
+                    .zIndex(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(if (isFavorite) R.drawable.favourite_fill else R.drawable.favourite),
+                    contentDescription = "Favourite Icon",
+                    tint = Color(0xFF1A2530),
+                    modifier = Modifier
+                        .size(22.dp)
+                        .graphicsLayer {
+                            scaleX = likeScale
+                            scaleY = likeScale
                         }
                 )
             }
@@ -417,7 +480,22 @@ private fun Details_Screen(shoe: Shoe?) {
                             interactionSource = interactionSource,
                             indication = null
                         ) {
+                            shoe?.let {
+                                val item = Shoe(
+                                    description = it.description,
+                                    id = it.id,
+                                    imageURL = it.imageURL,
+                                    name = it.name,
+                                    type = it.type,
+                                    price = it.price,
+                                    shoeImages = it.shoeImages,
+                                    productDetails = it.productDetails,
+                                    quantity = 1,
+                                    shoeSize = selectedSize
+                                )
 
+                                viewModel.addToCart(item)
+                            }
                         }
                         .padding(horizontal = 26.dp, vertical = 14.dp),
                     contentAlignment = Alignment.Center

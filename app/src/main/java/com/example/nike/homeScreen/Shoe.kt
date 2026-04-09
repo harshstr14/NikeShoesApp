@@ -12,5 +12,7 @@ data class Shoe(
     val price: Double = 0.0,
     val type: String = "",
     val productDetails: List<String> = emptyList(),
-    val shoeImages: List<String> = emptyList()
+    val shoeImages: List<String> = emptyList(),
+    var quantity: Int = 1,
+    val shoeSize: Int = 40
 ) : Parcelable

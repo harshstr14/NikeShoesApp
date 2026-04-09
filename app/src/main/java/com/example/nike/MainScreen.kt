@@ -157,11 +157,8 @@ private fun Main_Screen() {
                             ) {
                                 Icon(painter = painterResource(
                                     when {
-                                        data.visuals.message.contains("name") -> R.drawable.user_icon
-                                        data.visuals.message.contains("email") -> R.drawable.email_icon
-                                        data.visuals.message.contains("Email") -> R.drawable.email_icon
-                                        data.visuals.message.contains("password") -> R.drawable.password_icon
-                                        data.visuals.message.contains("Password") -> R.drawable.password_icon
+                                        data.visuals.message.contains("favourite") -> R.drawable.favourite
+                                        data.visuals.message.contains("cart") -> R.drawable.cart
                                         else -> {
                                             R.drawable.alert_icon
                                         }
@@ -230,11 +227,11 @@ private fun Main_Screen() {
                 }
             ) {
                 composable(BottomNavRoute.Home.route) {
-                    HomeScreen(navController)
+                    HomeScreen(navController, drawerState)
                 }
 
                 composable(BottomNavRoute.Favourites.route) {
-                    FavouriteScreen(navController)
+                    FavouriteScreen(navController, snackBarHostState)
                 }
 
                 composable(BottomNavRoute.Notification.route) {

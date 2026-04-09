@@ -29,14 +29,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,10 +69,12 @@ import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(navController: NavHostController, drawerState: DrawerState) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val (menuInteraction, menuScale) = pressScale()
     val (cartInteraction, cartScale) = pressScale()
 
@@ -85,7 +91,9 @@ fun HomeScreen(navController: NavHostController) {
                     interactionSource = menuInteraction,
                     indication = null
                 ) {
-
+                    scope.launch {
+                        drawerState.open()
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -463,6 +471,7 @@ fun ShoeCard(shoe: Shoe, onClick: () -> Unit) {
 @Composable
 @Preview(showSystemUi = true)
 private fun HomeScreenPreview() {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val navController = rememberNavController()
-    HomeScreen(navController)
+    HomeScreen(navController, drawerState)
 }
