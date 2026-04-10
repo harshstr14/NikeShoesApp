@@ -65,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -157,6 +158,7 @@ private fun Main_Screen() {
                             ) {
                                 Icon(painter = painterResource(
                                     when {
+                                        data.visuals.message.contains("Profile") -> R.drawable.user
                                         data.visuals.message.contains("favourite") -> R.drawable.favourite
                                         data.visuals.message.contains("cart") -> R.drawable.cart
                                         else -> {
@@ -239,7 +241,7 @@ private fun Main_Screen() {
                 }
 
                 composable(BottomNavRoute.Profile.route) {
-                    ProfileScreen(navController)
+                    ProfileScreen(navController, snackBarHostState)
                 }
 
                 composable(BottomNavRoute.Search.route) {
@@ -485,6 +487,7 @@ private fun BottomNavBar(navController: NavController) {
     Box(
         modifier = Modifier.fillMaxWidth()
             .background(Color.Transparent)
+            .zIndex(1f)
             .navigationBarsPadding(),
         contentAlignment = Alignment.Center
     ) {

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.nike.cartScreen.CartUiState
 import com.example.nike.favouriteScreen.FavouriteUiState
 import com.example.nike.homeScreen.Shoe
+import com.example.nike.profileScreen.UserProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,9 +27,29 @@ class UserViewModel : ViewModel() {
         MutableStateFlow<CartUiState>(CartUiState.Loading)
     val cartState: StateFlow<CartUiState> = _cartState
 
+    private val _userProfileState = MutableStateFlow<UserProfile?>(null)
+    val userProfileState: StateFlow<UserProfile?> = _userProfileState
+
     init {
         loadFavorites()
         loadCart()
+        loadUserProfile()
+    }
+
+    fun loadUserProfile() {
+        viewModelScope.launch {
+            repo.getUserProfile().collect {
+                _userProfileState.value = it
+            }
+        }
+    }
+
+    fun updateProfile(profile: UserProfile) {
+        viewModelScope.launch {
+            repo.updateUserProfile(profile).collect {
+                _uiState.value = it
+            }
+        }
     }
 
     fun addToCart(item: Shoe) {
@@ -81,6 +102,10 @@ class UserViewModel : ViewModel() {
                     _cartState.value = CartUiState.Success(list)
                 }
         }
+    }
+
+    fun getCartItem(shoeId: String): Flow<Shoe?> {
+        return repo.getCartItemById(shoeId)
     }
 
     fun removeFromCart(itemId: String) {

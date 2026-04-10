@@ -51,6 +51,7 @@ import com.example.nike.cartScreen.DashedLine
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import com.example.nike.ui.theme.NikeTheme
+import java.util.Locale
 
 class CheckoutScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,16 +66,20 @@ class CheckoutScreen : ComponentActivity() {
             )
         )
 
+        val subtotal = intent.getDoubleExtra("subTotal", 0.0)
+        val totalCost = intent.getDoubleExtra("totalCost", 0.0)
+        val shipping = intent.getDoubleExtra("shipping", 0.0)
+
         setContent {
             NikeTheme {
-                Checkout_Screen()
+                Checkout_Screen(subtotal, totalCost, shipping)
             }
         }
     }
 }
 
 @Composable
-private fun Checkout_Screen() {
+private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Double) {
     val context = LocalContext.current
     val activity = context as? Activity
     val snackBarHostState = remember { SnackbarHostState() }
@@ -479,7 +484,7 @@ private fun Checkout_Screen() {
                     modifier = Modifier
                         .padding(top = 26.dp, end = 25.dp)
                         .align(Alignment.TopEnd),
-                    text = "$1250.00",
+                    text = "$ ${String.format(Locale.US, "%.2f", subtotal)}",
                     fontSize = 16.sp,
                     lineHeight = 20.sp,
                     fontFamily = fonts,
@@ -505,7 +510,7 @@ private fun Checkout_Screen() {
                     modifier = Modifier
                         .padding(top = 66.dp, end = 25.dp)
                         .align(Alignment.TopEnd),
-                    text = "$40.90",
+                    text = "$ ${String.format(Locale.US, "%.2f", shipping)}",
                     fontSize = 16.sp,
                     lineHeight = 20.sp,
                     fontFamily = fonts,
@@ -535,7 +540,7 @@ private fun Checkout_Screen() {
                     modifier = Modifier
                         .padding(top = 120.dp, end = 25.dp)
                         .align(Alignment.TopEnd),
-                    text = "$1690.99",
+                    text = "$ ${String.format(Locale.US, "%.2f", totalCost)}",
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
                     fontFamily = fonts,
@@ -575,6 +580,6 @@ private fun Checkout_Screen() {
 @Composable
 private fun CheckoutScreenPreview() {
     NikeTheme {
-        Checkout_Screen()
+        Checkout_Screen(0.0, 0.0, 0.0)
     }
 }

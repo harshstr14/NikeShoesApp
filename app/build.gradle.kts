@@ -42,6 +42,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.cloudinary.android)
+    implementation(libs.ucrop)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.runtime.livedata)

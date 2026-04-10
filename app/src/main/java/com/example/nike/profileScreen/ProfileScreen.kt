@@ -1,5 +1,11 @@
 package com.example.nike.profileScreen
 
+import android.app.Activity
+import android.content.Context
+import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,12 +26,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -43,18 +55,127 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.UploadCallback
 import com.example.nike.R
+import com.example.nike.homeScreen.user.UserViewModel
 import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.yalantis.ucrop.UCrop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import java.io.File
 
+object ProfilePrefs {
+    val Context.dataStore by preferencesDataStore("profile")
+    val PROFILE_URL = stringPreferencesKey("profile_url")
+    val USER_NAME = stringPreferencesKey("user_name")
+
+    suspend fun saveProfileUrl(context: Context, url: String) {
+        context.dataStore.edit {
+            it[PROFILE_URL] = url
+        }
+    }
+
+    suspend fun saveUserName(context: Context, name: String) {
+        context.dataStore.edit {
+            it[USER_NAME] = name
+        }
+    }
+
+    fun getProfileUrl(context: Context) =
+        context.dataStore.data.map {
+            it[PROFILE_URL]
+        }
+
+    fun getUserName(context: Context) =
+        context.dataStore.data.map {
+            it[USER_NAME]
+        }
+
+    suspend fun clear(context: Context) {
+        context.dataStore.edit { prefs ->
+            prefs.clear()
+        }
+    }
+}
 @Composable
-fun ProfileScreen(navController: NavHostController) {
+fun ProfileScreen(
+    navController: NavHostController, snackBarHostState: SnackbarHostState,
+    viewModel: UserViewModel = viewModel(),
+    profileViewModel: ProfileViewModel = viewModel()
+) {
     val (backInteraction, backScale) = pressScale()
     val (editInteraction, editScale) = pressScale()
+    val (cameraInteraction, cameraScale) = pressScale()
     val interactionSource = remember { MutableInteractionSource() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val userProfile by viewModel.userProfileState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState) {
+        uiState?.let {
+            snackBarHostState.showSnackbar(it)
+        }
+    }
+
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val resultUri = UCrop.getOutput(result.data!!)
+            resultUri?.let { uri ->
+                // Upload to Cloudinary and save URL
+                val database = FirebaseDatabase.getInstance().getReference("Users")
+                uploadToCloudinary(
+                    uri, database,
+                    profileViewModel,
+                    onShowMessage = { message ->
+                        scope.launch {
+                            snackBarHostState.showSnackbar(
+                                message = message,
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { sourceUri ->
+            val destinationUri = Uri.fromFile(
+                File(context.cacheDir, "crop_${System.currentTimeMillis()}.jpg")
+            )
+            val options = UCrop.Options().apply {
+                setCircleDimmedLayer(true)
+                setShowCropFrame(false)
+                setShowCropGrid(false)
+            }
+            val intent = UCrop.of(sourceUri, destinationUri)
+                .withAspectRatio(1f, 1f)
+                .withMaxResultSize(512, 512)
+                .withOptions(options)
+                .getIntent(context)
+            cropLauncher.launch(intent)
+        }
+    }
 
     var name by remember { mutableStateOf("") }
     var nameError by remember { mutableStateOf(false) }
@@ -65,6 +186,16 @@ fun ProfileScreen(navController: NavHostController) {
     var phoneNumber by remember { mutableStateOf("") }
     var phoneNumberError by remember { mutableStateOf(false) }
     var phoneNumberErrorText by remember { mutableStateOf("") }
+
+    LaunchedEffect(userProfile) {
+        if (name.isEmpty() && email.isEmpty() && phoneNumber.isEmpty()) {
+            userProfile?.let {
+                name = it.name
+                email = it.email
+                phoneNumber = it.phone
+            }
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -134,7 +265,7 @@ fun ProfileScreen(navController: NavHostController) {
         )
 
         Image(
-            painter = painterResource(id = R.drawable.logo),
+            painter = rememberAsyncImagePainter(userProfile?.profileImageUrl),
             contentDescription = null,
             modifier = Modifier
                 .padding(top = 95.dp)
@@ -147,7 +278,7 @@ fun ProfileScreen(navController: NavHostController) {
             modifier = Modifier
                 .padding(top = 200.dp)
                 .align(Alignment.TopCenter),
-            text = "Alisson Becker",
+            text = name,
             fontSize = 20.sp,
             lineHeight = 22.sp,
             fontFamily = fonts,
@@ -163,25 +294,22 @@ fun ProfileScreen(navController: NavHostController) {
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFF5B9EE1))
                 .clickable(
-                    interactionSource = backInteraction,
+                    interactionSource = cameraInteraction,
                     indication = null
                 ) {
-                    navController.navigate(BottomNavRoute.Home.route) {
-                        popUpTo(BottomNavRoute.Home.route)
-                        launchSingleTop = true
-                    }
+                    imagePickerLauncher.launch("image/*")
                 },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(R.drawable.camera_icon),
-                contentDescription = "Back Icon",
+                contentDescription = "Camera Icon",
                 tint = Color(0xFFFFFFFF),
                 modifier = Modifier
                     .size(16.dp)
                     .graphicsLayer {
-                        scaleX = backScale
-                        scaleY = backScale
+                        scaleX = cameraScale
+                        scaleY = cameraScale
                     }
             )
         }
@@ -262,7 +390,7 @@ fun ProfileScreen(navController: NavHostController) {
                                 },
                             textStyle = TextStyle(
                                 fontFamily = fonts,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Normal,
                                 fontStyle = FontStyle.Normal,
                                 fontSize = 14.sp, lineHeight = 17.sp,
                                 color = Color(0xFF707B81)
@@ -361,7 +489,7 @@ fun ProfileScreen(navController: NavHostController) {
                                 },
                             textStyle = TextStyle(
                                 fontFamily = fonts,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Normal,
                                 fontStyle = FontStyle.Normal,
                                 fontSize = 14.sp, lineHeight = 17.sp,
                                 color = Color(0xFF707B81)
@@ -463,7 +591,7 @@ fun ProfileScreen(navController: NavHostController) {
                                 },
                             textStyle = TextStyle(
                                 fontFamily = fonts,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Normal,
                                 fontStyle = FontStyle.Normal,
                                 fontSize = 14.sp, lineHeight = 17.sp,
                                 color = Color(0xFF707B81)
@@ -504,25 +632,45 @@ fun ProfileScreen(navController: NavHostController) {
                         interactionSource = interactionSource,
                         indication = null
                     ) {
-                        nameError = name.isBlank()
-                        emailError = email.isBlank()
-                        phoneNumberError = phoneNumber.isBlank()
-
-                        nameErrorText = if (name.isBlank()) "Please enter name" else ""
-                        emailErrorText = if (email.isBlank()) "Please enter email" else ""
-                        phoneNumberErrorText = if (phoneNumber.isBlank()) "Please phone number" else ""
-
-                        if (nameErrorText.isNotEmpty() || emailErrorText.isNotEmpty() || phoneNumberErrorText.isNotEmpty()) return@clickable
-
-                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                            emailErrorText = "Enter a valid email"
-                            return@clickable
-                        }
+                        nameError = false
+                        emailError = false
+                        phoneNumberError = false
 
                         nameErrorText = ""
                         emailErrorText = ""
                         phoneNumberErrorText = ""
 
+                        if (name.isBlank()) {
+                            nameError = true
+                            nameErrorText = "Please enter name"
+                        }
+
+                        if (email.isBlank()) {
+                            emailError = true
+                            emailErrorText = "Please enter email"
+                        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                            emailError = true
+                            emailErrorText = "Enter a valid email"
+                        }
+
+                        if (phoneNumber.isBlank()) {
+                            phoneNumberError = true
+                            phoneNumberErrorText = "Please enter phone number"
+                        } else if (phoneNumber.length < 10) {
+                            phoneNumberError = true
+                            phoneNumberErrorText = "Enter valid phone number"
+                        }
+
+                        if (nameError || emailError || phoneNumberError) return@clickable
+
+                        val updatedProfile = UserProfile(
+                            name = name,
+                            email = email,
+                            phone = phoneNumber,
+                            profileImageUrl = userProfile?.profileImageUrl ?: ""
+                        )
+
+                        viewModel.updateProfile(updatedProfile)
                     }
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -538,9 +686,71 @@ fun ProfileScreen(navController: NavHostController) {
     }
 }
 
+private fun uploadToCloudinary(
+    imageUri: Uri,
+    database: DatabaseReference,
+    profileViewModel: ProfileViewModel,
+    onShowMessage: (String) -> Unit
+) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    profileViewModel.setUploading(true)
+
+    MediaManager.get().upload(imageUri)
+        .option("folder", "profile_pics")
+        .option("public_id", userId)
+        .option("overwrite", true)
+        .callback(object : UploadCallback {
+            override fun onStart(requestId: String?) {
+                Log.d("UPLOAD_DEBUG", "Upload started")
+                profileViewModel.setUploading(true)
+                profileViewModel.updateProgress(0f)
+            }
+
+            override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
+                val progress = bytes.toFloat() / totalBytes.toFloat()
+                Log.d("UPLOAD_DEBUG", "Progress: $progress")
+                profileViewModel.updateProgress(progress)
+            }
+
+            override fun onSuccess(requestId: String?, resultData: Map<*, *>?) {
+                profileViewModel.setUploading(false)
+
+                val secureUrl = resultData?.get("secure_url").toString()
+                val version = resultData?.get("version").toString()
+
+                val finalUrl = "$secureUrl?v=$version"
+
+                // Save URL in Firebase Realtime Database
+                database.child(userId).child("Profile ImageUrl").setValue(finalUrl)
+                    .addOnSuccessListener {
+                        onShowMessage("Profile photo updated")
+
+                        profileViewModel.refreshProfileImage(userId)
+                    }
+                    .addOnFailureListener { e ->
+                        onShowMessage("Failed to update profile: ${e.message}")
+                    }
+            }
+
+            override fun onError(requestId: String, p1: com.cloudinary.android.callback.ErrorInfo) {
+                profileViewModel.setUploading(false)
+                profileViewModel.resetProgress()
+
+                onShowMessage("Upload failed: ${p1.description}")
+            }
+
+            override fun onReschedule(requestId: String, p1: com.cloudinary.android.callback.ErrorInfo) {
+                // You can leave this empty if you don’t need it
+            }
+        })
+        .dispatch()
+}
+
 @Composable
 @Preview(showSystemUi = true)
 private fun ProfileScreenPreview() {
+    val snackBarHostState = remember { SnackbarHostState() }
     val navController = rememberNavController()
-    ProfileScreen(navController)
+    ProfileScreen(navController, snackBarHostState)
 }

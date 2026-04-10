@@ -104,7 +104,7 @@ class DetailsScreen : ComponentActivity() {
 }
 
 @Composable
-private fun Details_Screen(shoe: Shoe?) {
+private fun Details_Screen(shoe: Shoe?, viewModel: UserViewModel = viewModel()) {
     val context = LocalContext.current
     val activity = context as? Activity
     val snackBarHostState = remember { SnackbarHostState() }
@@ -120,7 +120,6 @@ private fun Details_Screen(shoe: Shoe?) {
     val images = allImages.drop(1)
     val pagerState = rememberPagerState(pageCount = { images.size })
 
-    val viewModel: UserViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
@@ -134,6 +133,14 @@ private fun Details_Screen(shoe: Shoe?) {
     val isFavorite by viewModel
         .observeFavorite(shoeId)
         .collectAsState(initial = false)
+
+    val cartItem by viewModel
+        .getCartItem(shoeId)
+        .collectAsState(initial = null)
+
+    LaunchedEffect(cartItem) {
+        selectedSize = cartItem?.shoeSize ?: shoe?.shoeSize ?: 40
+    }
 
     Scaffold(
         containerColor = colorResource(id = R.color.background_color),

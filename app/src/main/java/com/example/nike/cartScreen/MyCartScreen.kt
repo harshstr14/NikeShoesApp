@@ -67,6 +67,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.nike.R
 import com.example.nike.checkoutScreen.CheckoutScreen
+import com.example.nike.detailsScreen.DetailsScreen
 import com.example.nike.homeScreen.user.UserViewModel
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
@@ -293,6 +294,14 @@ private fun MyCart_Screen(viewModel: UserViewModel = viewModel()) {
 
                                     onDelete = {
                                         viewModel.removeFromCart(item.id.toString())
+                                    },
+
+                                    onClick = {
+                                        val intent = Intent(context, DetailsScreen::class.java).apply {
+                                            putExtra("shoe", item)
+                                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                        }
+                                        context.startActivity(intent)
                                     }
                                 )
                             }
@@ -421,6 +430,9 @@ private fun MyCart_Screen(viewModel: UserViewModel = viewModel()) {
                             indication = null
                         ) {
                             val intent = Intent(context, CheckoutScreen::class.java).apply {
+                                putExtra("subTotal", subtotal)
+                                putExtra("totalCost", total)
+                                putExtra("shipping", shipping)
                                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                             }
                             context.startActivity(intent)
@@ -449,12 +461,21 @@ fun CartItem(
     quantity: Int,
     onIncrease: () -> Unit,
     onDecrease: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onClick: () -> Unit
 ) {
     val (deleteInteraction, deleteScale) = pressScale()
+    val interactionSource = remember { MutableInteractionSource() }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                onClick()
+            }
             .padding(horizontal = 20.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
