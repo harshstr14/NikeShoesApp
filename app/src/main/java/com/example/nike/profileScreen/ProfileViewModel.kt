@@ -7,6 +7,8 @@ import com.example.nike.profileScreen.ProfilePrefs.getProfileUrl
 import com.example.nike.profileScreen.ProfilePrefs.getUserName
 import com.example.nike.profileScreen.ProfilePrefs.saveProfileUrl
 import com.example.nike.profileScreen.ProfilePrefs.saveUserName
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,6 +83,78 @@ class ProfileViewModel(
         }.addOnFailureListener { e ->
             e.printStackTrace()
         }
+    }
+
+    fun reAuthenticateAndUpdateEmail(
+        password: String,
+        newEmail: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val user = FirebaseAuth.getInstance().currentUser
+
+        if (user == null) {
+            onError("User not logged in")
+            return
+        }
+
+        val email = user.email ?: ""
+
+        if (email.isBlank()) {
+            onError("No email found for this user")
+            return
+        }
+
+        val credential = EmailAuthProvider.getCredential(email, password)
+
+        _isUploading.value = true
+
+        user.reauthenticate(credential)
+            .addOnSuccessListener {
+                user.verifyBeforeUpdateEmail(newEmail)
+                    .addOnSuccessListener {
+                        _isUploading.value = false
+                        onSuccess()
+                    }
+                    .addOnFailureListener {
+                        _isUploading.value = false
+                        onError(it.message ?: "Email update failed")
+                    }
+            }
+            .addOnFailureListener { e ->
+                _isUploading.value = false
+                onError(
+                    when {
+                        e.message?.contains("password") == true -> "Incorrect password"
+                        else -> e.message ?: "Re-authentication failed"
+                    }
+                )
+            }
+    }
+
+    fun updateEmailInAuth(
+        newEmail: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val user = FirebaseAuth.getInstance().currentUser
+
+        if (user == null) {
+            onError("User not logged in")
+            return
+        }
+
+        _isUploading.value = true
+
+        user.verifyBeforeUpdateEmail(newEmail)
+            .addOnSuccessListener {
+                _isUploading.value = false
+                onSuccess()
+            }
+            .addOnFailureListener { e ->
+                _isUploading.value = false
+                onError(e.message ?: "Failed to update email")
+            }
     }
 
     private val _isUploading = MutableStateFlow(false)

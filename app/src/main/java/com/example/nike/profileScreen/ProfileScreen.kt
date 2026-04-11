@@ -11,8 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +30,7 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -42,26 +45,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.UploadCallback
 import com.example.nike.R
@@ -125,6 +142,14 @@ fun ProfileScreen(
 
     val userProfile by viewModel.userProfileState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val imageUrl by profileViewModel.profileImageUrl.collectAsStateWithLifecycle()
+    val isUploading by profileViewModel.isUploading.collectAsState()
+
+    val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+    LaunchedEffect(uid) {
+        uid?.let { profileViewModel.silentRefresh(it) }
+    }
 
     LaunchedEffect(uiState) {
         uiState?.let {
@@ -187,6 +212,9 @@ fun ProfileScreen(
     var phoneNumberError by remember { mutableStateOf(false) }
     var phoneNumberErrorText by remember { mutableStateOf("") }
 
+    var showReAuthDialog by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+
     LaunchedEffect(userProfile) {
         if (name.isEmpty() && email.isEmpty() && phoneNumber.isEmpty()) {
             userProfile?.let {
@@ -201,6 +229,39 @@ fun ProfileScreen(
         modifier = Modifier.fillMaxSize()
             .background(Color(0xFFF8F9FA))
     ) {
+
+        if (isUploading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1A2530).copy(alpha = 0.4f))
+                    .zIndex(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes (R.raw.nike_logo_animation)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .size(140.dp)
+                        .clip(RectangleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LottieAnimation(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier
+                            .size(140.dp)
+                            .graphicsLayer {
+                                scaleX = 1.2f
+                                scaleY = 1.2f
+                            }
+                    )
+                }
+            }
+        }
         Box(
             modifier = Modifier.padding(top = 15.dp, start = 20.dp)
                 .size(44.dp)
@@ -264,14 +325,18 @@ fun ProfileScreen(
                 }
         )
 
-        Image(
-            painter = rememberAsyncImagePainter(userProfile?.profileImageUrl),
-            contentDescription = null,
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Profile Image",
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(R.drawable.logo),
+            error = painterResource(R.drawable.logo),
             modifier = Modifier
                 .padding(top = 95.dp)
                 .align(Alignment.TopCenter)
                 .size(90.dp)
                 .clip(CircleShape)
+
         )
 
         Text(
@@ -663,14 +728,37 @@ fun ProfileScreen(
 
                         if (nameError || emailError || phoneNumberError) return@clickable
 
+                        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@clickable
+
+                        val oldEmail = userProfile?.email?.trim() ?: ""
+                        val newEmail = email.trim()
+
                         val updatedProfile = UserProfile(
-                            name = name,
-                            email = email,
-                            phone = phoneNumber,
+                            name = name.trim(),
+                            email = newEmail,
+                            phone = phoneNumber.trim(),
                             profileImageUrl = userProfile?.profileImageUrl ?: ""
                         )
 
-                        viewModel.updateProfile(updatedProfile)
+                        if (newEmail != oldEmail) {
+                            profileViewModel.updateEmailInAuth(
+                                newEmail = newEmail,
+                                onSuccess = {
+                                    viewModel.updateProfile(updatedProfile)
+                                },
+                                onError = { message ->
+                                    if (message.contains("requires recent authentication")) {
+                                        showReAuthDialog = true
+                                    } else {
+                                        emailErrorText = message
+                                        emailError = true
+                                    }
+                                }
+                            )
+
+                        } else {
+                            viewModel.updateProfile(updatedProfile)
+                        }
                     }
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -681,6 +769,277 @@ fun ProfileScreen(
                     fontFamily = fonts, fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Normal, color = Color(0xFFF8F9FA)
                 )
+            }
+        }
+
+        if (showReAuthDialog) {
+            IOSStyleBottomDialog(
+                title = "Re-authentication Required",
+                message = "For security reasons, please enter your password to update your email.",
+                password = password,
+                onPasswordChange = {
+                    password = it
+                },
+                confirmText = "Continue",
+                dismissText = "Cancel",
+                onConfirm = {
+                    val user = FirebaseAuth.getInstance().currentUser
+                    val oldEmail = userProfile?.email ?: ""
+                    Log.d("AUTH", "Email: ${user?.email} $oldEmail")
+                    FirebaseAuth.getInstance().currentUser?.providerData?.forEach {
+                        Log.d("AUTH_PROVIDER", it.providerId)
+                    }
+
+                    profileViewModel.reAuthenticateAndUpdateEmail(
+                        password = password,
+                        newEmail = email.trim(),
+                        onSuccess = {
+                            showReAuthDialog = false
+                            password = ""
+
+                            val updatedProfile = UserProfile(
+                                name = name.trim(),
+                                email = email.trim(),
+                                phone = phoneNumber.trim(),
+                                profileImageUrl = userProfile?.profileImageUrl ?: ""
+                            )
+
+                            viewModel.updateProfile(updatedProfile)
+                        },
+                        onError = {
+                            emailErrorText = it
+                            emailError = true
+                        }
+                    )
+                },
+                onDismiss = {
+                    showReAuthDialog = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun IOSStyleBottomDialog(
+    title: String,
+    message: String,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    confirmText: String = "Confirm",
+    dismissText: String = "Cancel",
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf(false) }
+    var passwordErrorText by remember { mutableStateOf("") }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 22.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFFF8F9FA),
+                tonalElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontFamily = fonts,
+                        fontSize = 17.sp, lineHeight = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530),
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = message,
+                        fontFamily = fonts,
+                        fontSize = 13.sp, lineHeight = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF707B81)
+                    )
+
+
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start),
+                        text = "Password", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (passwordError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText, toggleIcon) = createRefs()
+
+                            if (password.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter Password",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = password,
+                                    onValueChange = {
+                                        onPasswordChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            passwordError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(toggleIcon.start, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C)),
+                                    visualTransformation = if (isPasswordVisible)
+                                        VisualTransformation.None
+                                    else
+                                        PasswordVisualTransformation()
+                                )
+                            }
+                            Icon(
+                                painter = painterResource(
+                                    if (isPasswordVisible)
+                                        R.drawable.eye_open_icon
+                                    else
+                                        R.drawable.eye_closed_icon
+                                ),
+                                contentDescription = "Toggle password",
+                                tint = Color(0xFF1A2530),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .constrainAs(toggleIcon) {
+                                        end.linkTo(parent.end, margin = 15.dp)
+                                        top.linkTo(parent.top)
+                                        bottom.linkTo(parent.bottom)
+                                    }
+                                    .clickable {
+                                        isPasswordVisible = !isPasswordVisible
+                                    }
+                            )
+                        }
+                    }
+
+                    if (passwordError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = passwordErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF707B81).copy(alpha = 0.2f))
+                                .clickable { onDismiss() }
+                                .padding(vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dismissText,
+                                color = Color(0xFF707B81),
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF5B9EE1))
+                                .clickable {
+                                    keyboardController?.hide()
+                                    passwordError = password.isBlank()
+                                    passwordErrorText = if (password.isBlank()) "Please enter password" else ""
+
+                                    if (passwordErrorText.isNotEmpty()) return@clickable
+
+                                    passwordErrorText = ""
+
+                                    onConfirm() }
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = confirmText,
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal,
+                                color = Color(0xFFFFFFFF)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

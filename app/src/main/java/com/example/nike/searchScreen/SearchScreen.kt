@@ -1,6 +1,7 @@
 package com.example.nike.searchScreen
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -8,7 +9,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -30,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -58,11 +67,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.nike.R
+import com.example.nike.detailsScreen.DetailsScreen
+import com.example.nike.homeScreen.ShoeCard
+import com.example.nike.homeScreen.shoes.ShoesViewModel
 import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlin.collections.emptyList
 
 val Context.dataStore by preferencesDataStore(name = "search_prefs")
 
@@ -87,12 +100,16 @@ class SearchHistoryDataStore(private val context: Context) {
 }
 
 @Composable
-fun SearchScreen(navController: NavHostController) {
+fun SearchScreen(navController: NavHostController, shoesViewModel: ShoesViewModel = viewModel()) {
     val viewModel: SearchViewModel = viewModel()
     val (backInteraction, backScale) = pressScale()
     val (clearALlInteraction, clearAllScale) = pressScale()
     var searchText by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
+
+    val shoesViewModel: ShoesViewModel = viewModel()
+    val shoes by shoesViewModel.shoes.observeAsState(emptyList())
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -177,6 +194,8 @@ fun SearchScreen(navController: NavHostController) {
             onQueryChange = { newValue ->
                 searchText = newValue
 
+                shoesViewModel.updateSearchQuery(newValue.text)
+
                 if (newValue.text.endsWith(" ")) {
                     viewModel.addSearch(newValue.text.trim())
                 }
@@ -196,16 +215,46 @@ fun SearchScreen(navController: NavHostController) {
             color = Color(0xFF1A2530),
         )
 
-        SearchHistoryList(
-            history = viewModel.searchHistory,
-            onItemClick = { selected ->
-                searchText = TextFieldValue(selected)
-            },
-            onDeleteClick = { item ->
-                viewModel.removeSearch(item)
-            },
-            modifier = Modifier.padding(top = 180.dp)
-        )
+        if (searchText.text.isEmpty()) {
+            SearchHistoryList(
+                history = viewModel.searchHistory,
+                onItemClick = { selected ->
+                    searchText = TextFieldValue(selected)
+                    shoesViewModel.updateSearchQuery(selected)
+                },
+                onDeleteClick = { item ->
+                    viewModel.removeSearch(item)
+                },
+                modifier = Modifier.padding(top = 180.dp)
+            )
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 190.dp)
+            ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(start = 25.dp, end = 25.dp, bottom = 125.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(shoes) { shoe ->
+                        ShoeCard(
+                            shoe = shoe,
+                            onClick = {
+                                val intent = Intent(context, DetailsScreen::class.java).apply {
+                                    putExtra("shoe", shoe)
+                                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -214,7 +263,9 @@ private fun SearchBar(
     modifier: Modifier,
     query: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
-    viewModel: SearchViewModel
+    viewModel: SearchViewModel,
+    shoesViewModel: ShoesViewModel = viewModel()
+
 ) {
     val selectionColors = TextSelectionColors(
         handleColor = Color(0xFF1C1C1C),
@@ -269,6 +320,7 @@ private fun SearchBar(
                 keyboardActions = KeyboardActions(
                     onSearch = {
                         viewModel.addSearch(query.text)
+                        shoesViewModel.updateSearchQuery(query.text)
                     }
                 )
             )

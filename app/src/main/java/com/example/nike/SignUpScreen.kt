@@ -66,6 +66,7 @@ import androidx.constraintlayout.compose.Dimension
 import com.example.nike.screens.fonts
 import com.example.nike.ui.theme.NikeTheme
 import com.example.nike.googleAuthentication.GoogleSignInManager
+import com.example.nike.homeScreen.HomeScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -91,6 +92,7 @@ class SignUpScreen : ComponentActivity() {
                             flags =Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
                     )
+                    finish()
                 },
                 onError = { message ->
                     Toast.makeText(this,message,Toast.LENGTH_SHORT).show()
@@ -601,15 +603,15 @@ private fun SignUp_Screen(onGoogleSignIn: () -> Unit) {
                                     val userID = auth.currentUser?.uid
                                     val userData = mapOf(
                                         "name" to name,
-                                        "email" to email,
+                                        "mail" to email,
                                     )
                                     if (userID != null) {
                                         database.child("Users").child(userID).setValue(userData).addOnSuccessListener {
-//                                            pref.edit { putBoolean("isLoggedIn", true) }
-//                                            val intent = Intent(this, Home::class.java)
-//                                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-//                                            startActivity(intent)
-//                                            finish()
+                                            val intent = Intent(context, MainScreen::class.java).apply {
+                                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                            }
+                                            context.startActivity(intent)
+                                            (context as? Activity)?.finish()
                                         }.addOnFailureListener { e ->
                                             Log.e("FirebaseDB", "Failed to save user data: ${e.message}", e)
                                             scope.launch {

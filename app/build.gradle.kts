@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.cloudinary.android)
     implementation(libs.ucrop)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

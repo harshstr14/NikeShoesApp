@@ -91,6 +91,7 @@ class SignInScreen : ComponentActivity() {
                             flags =Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
                     )
+                    finish()
                 },
                 onError = { message ->
                     Toast.makeText(this,message,Toast.LENGTH_SHORT).show()
@@ -524,11 +525,11 @@ private fun Sign_InScreen(onGoogleSignIn: () -> Unit) {
 
                             auth.signInWithEmailAndPassword(email.trim(),password.trim()).addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
-//                                    pref.edit { putBoolean("isLoggedIn",true) }
-//                                    val intent = Intent(this, Home::class.java)
-//                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-//                                    startActivity(intent)
-//                                    finish()
+                                    val intent = Intent(context, MainScreen::class.java).apply {
+                                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                    }
+                                    context.startActivity(intent)
+                                    (context as? Activity)?.finish()
                                 } else {
                                     try {
                                         throw task.exception!!

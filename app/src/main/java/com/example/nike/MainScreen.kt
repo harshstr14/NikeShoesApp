@@ -1,7 +1,9 @@
 package com.example.nike
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -45,11 +48,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +66,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -65,23 +75,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.nike.cartScreen.MyCartScreen
 import com.example.nike.favouriteScreen.FavouriteScreen
+import com.example.nike.googleAuthentication.GoogleSignInManager
 import com.example.nike.homeScreen.HomeScreen
 import com.example.nike.navigation.BottomItem
 import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.notificationScreen.NotificationScreen
+import com.example.nike.profileScreen.ProfilePrefs
 import com.example.nike.profileScreen.ProfileScreen
+import com.example.nike.profileScreen.ProfileViewModel
 import com.example.nike.screens.fonts
 import com.example.nike.searchScreen.SearchScreen
 import com.example.nike.ui.theme.NikeTheme
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+
+private lateinit var googleSignInManager: GoogleSignInManager
 
 class MainScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +117,8 @@ class MainScreen : ComponentActivity() {
                 scrim = 0xFFF8F9FA.toInt()
             )
         )
+
+        googleSignInManager = GoogleSignInManager(this)
 
         setContent {
             NikeTheme {
@@ -110,6 +134,9 @@ private fun Main_Screen() {
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    var showLogOutDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = context as? Activity
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -120,7 +147,9 @@ private fun Main_Screen() {
                     .width(280.dp),
                 drawerContainerColor = Color.Transparent
             ) {
-                DrawerContent(navController, drawerState)
+                DrawerContent(navController, drawerState, onShowDialog = {
+                    showLogOutDialog = true
+                })
             }
         }
     ) {
@@ -248,12 +277,151 @@ private fun Main_Screen() {
                     SearchScreen(navController)
                 }
             }
+
+            Box(
+                modifier = Modifier.fillMaxSize().zIndex(2f)
+            ) {
+                if(showLogOutDialog) {
+                    IOSStyleBottomDialog(
+                        title = "Log Out",
+                        message = "Are you sure you want to log out? You will need to log in again.",
+                        confirmText = "Log Out",
+                        onConfirm = {
+                            googleSignInManager.signOut {
+                                Toast.makeText(context, "Signed out!", Toast.LENGTH_SHORT).show()
+                            }
+
+                            val intent = Intent(context, SignInScreen::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            context.startActivity(intent)
+                            activity?.finish()
+
+                            scope.launch {
+                                ProfilePrefs.clear(context)
+                            }
+                            showLogOutDialog = false
+                        },
+                        onDismiss = {
+                            showLogOutDialog = false
+                        }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun DrawerContent(navController: NavController, drawerState: DrawerState) {
+fun IOSStyleBottomDialog(
+    title: String,
+    message: String,
+    confirmText: String = "Delete",
+    dismissText: String = "Cancel",
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 22.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFFF8F9FA),
+                tonalElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontFamily = fonts,
+                        fontSize = 17.sp, lineHeight = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530),
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = message,
+                        fontFamily = fonts,
+                        fontSize = 13.sp, lineHeight = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF707B81)
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF707B81).copy(alpha = 0.2f))
+                                .clickable { onDismiss() }
+                                .padding(vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dismissText,
+                                color = Color(0xFF707B81),
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF5B9EE1))
+                                .clickable { onConfirm() }
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = confirmText,
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal,
+                                color = Color(0xFFFFFFFF)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+@Composable
+fun DrawerContent(
+    navController: NavController,
+    drawerState: DrawerState,
+    viewModel: ProfileViewModel = viewModel(),
+    onShowDialog: () -> Unit
+) {
+    val imageUrl by viewModel.profileImageUrl.collectAsStateWithLifecycle()
+    val name by viewModel.userName.collectAsState()
+
+    val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+    LaunchedEffect(uid) {
+        uid?.let { viewModel.silentRefresh(it) }
+    }
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -270,9 +438,12 @@ fun DrawerContent(navController: NavController, drawerState: DrawerState) {
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = null,
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Profile Image",
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(R.drawable.logo),
+            error = painterResource(R.drawable.logo),
             modifier = Modifier
                 .size(64.dp)
                 .offset(x = (-3).dp)
@@ -295,7 +466,7 @@ fun DrawerContent(navController: NavController, drawerState: DrawerState) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Alisson Becker",
+                text = name,
                 color = Color(0xFFFFFFFF),
                 fontSize = 20.sp,
                 lineHeight = 22.sp,
@@ -402,7 +573,10 @@ fun DrawerContent(navController: NavController, drawerState: DrawerState) {
             icon = R.drawable.signout_icon,
             isSelected = false
         ) {
-
+            onShowDialog()
+            scope.launch {
+                drawerState.close()
+            }
         }
     }
 }

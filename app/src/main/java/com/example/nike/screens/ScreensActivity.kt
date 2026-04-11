@@ -222,6 +222,7 @@ private fun Screens_Activity() {
                                     flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                                 }
                                 context.startActivity(intent)
+                                (context as? Activity)?.finish()
                             }
                         }
                         .padding(horizontal = 26.dp, vertical = 14.dp),
