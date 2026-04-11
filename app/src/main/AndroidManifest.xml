@@ -15,6 +15,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Nike">
         <activity
+            android:name=".orderDetailScreen.OrderDetailScreen"
+            android:exported="false"
+            android:label="@string/title_activity_order_detail_screen"
+            android:theme="@style/Theme.Nike" />
+        <activity
+            android:name=".orderScreen.OrderScreen"
+            android:exported="false"
+            android:label="@string/title_activity_order_screen"
+            android:theme="@style/Theme.Nike" />
+        <activity
             android:name=".detailsScreen.DetailsScreen"
             android:exported="false"
             android:label="@string/title_activity_details_screen"

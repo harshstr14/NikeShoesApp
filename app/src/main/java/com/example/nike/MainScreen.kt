@@ -94,6 +94,7 @@ import com.example.nike.homeScreen.HomeScreen
 import com.example.nike.navigation.BottomItem
 import com.example.nike.navigation.BottomNavRoute
 import com.example.nike.notificationScreen.NotificationScreen
+import com.example.nike.orderScreen.OrderScreen
 import com.example.nike.profileScreen.ProfilePrefs
 import com.example.nike.profileScreen.ProfileScreen
 import com.example.nike.profileScreen.ProfileViewModel
@@ -542,6 +543,10 @@ fun DrawerContent(
             scope.launch {
                 drawerState.close()
             }
+            val intent = Intent(context, OrderScreen::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            context.startActivity(intent)
         }
 
         DrawerItem(

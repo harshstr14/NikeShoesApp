@@ -106,8 +106,7 @@ fun SearchScreen(navController: NavHostController, shoesViewModel: ShoesViewMode
     val (clearALlInteraction, clearAllScale) = pressScale()
     var searchText by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
-
-    val shoesViewModel: ShoesViewModel = viewModel()
+    
     val shoes by shoesViewModel.shoes.observeAsState(emptyList())
     val context = LocalContext.current
 

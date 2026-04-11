@@ -9,4 +9,6 @@
     <string name="title_activity_my_cart_screen">MyCartScreen</string>
     <string name="title_activity_checkout_screen">CheckoutScreen</string>
     <string name="title_activity_details_screen">DetailsScreen</string>
+    <string name="title_activity_order_screen">OrderScreen</string>
+    <string name="title_activity_order_detail_screen">OrderDetailScreen</string>
 </resources>

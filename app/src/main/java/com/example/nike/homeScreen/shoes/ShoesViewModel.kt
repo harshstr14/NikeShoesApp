@@ -22,7 +22,7 @@ class ShoesViewModel : ViewModel() {
     private val _loading = MutableLiveData<Boolean>()
     val loading: LiveData<Boolean> = _loading
 
-    private val _selectedCategory = MutableLiveData<String>("All")
+    private val _selectedCategory = MutableLiveData("All")
     val selectedCategory: LiveData<String> = _selectedCategory
 
     private val _searchQuery = MutableStateFlow("")
