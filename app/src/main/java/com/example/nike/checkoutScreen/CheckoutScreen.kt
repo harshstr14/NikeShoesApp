@@ -6,8 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -22,32 +24,54 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.Dimension
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.nike.R
 import com.example.nike.cartScreen.DashedLine
+import com.example.nike.homeScreen.user.UserViewModel
 import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import com.example.nike.ui.theme.NikeTheme
@@ -79,13 +103,66 @@ class CheckoutScreen : ComponentActivity() {
 }
 
 @Composable
-private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Double) {
+private fun Checkout_Screen(
+    subtotal: Double, totalCost: Double, shipping: Double,
+    viewModel: UserViewModel = viewModel()
+) {
     val context = LocalContext.current
     val activity = context as? Activity
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val (backInteraction, backScale) = pressScale()
+    val (emailInteraction, emailScale) = pressScale()
+    val (phoneInteraction, phoneScale) = pressScale()
+    val (addressArrowInteraction, addressArrowScale) = pressScale()
+    val (paymentArrowInteraction, paymentArrowScale) = pressScale()
     val interactionSource = remember { MutableInteractionSource() }
+
+    val userProfile by viewModel.userProfileState.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    var isAddressExpanded by remember { mutableStateOf(false) }
+    var isPaymentExpanded by remember { mutableStateOf(false) }
+    var showAddressDialog by remember { mutableStateOf(false) }
+    var showCardDialog by remember { mutableStateOf(false) }
+
+    var addressLine by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var postcode by remember { mutableStateOf("") }
+    var country by remember { mutableStateOf("") }
+    val addressRotation by animateFloatAsState(if (isAddressExpanded) 90f else -90f)
+    val paymentRotation by animateFloatAsState(if (isPaymentExpanded) 90f else -90f)
+
+    val emailFocusRequester = remember { FocusRequester() }
+    val phoneFocusRequester = remember { FocusRequester() }
+
+    var isEmailEditable by remember { mutableStateOf(false) }
+    var isPhoneEditable by remember { mutableStateOf(false) }
+
+    var email by remember { mutableStateOf("rumenhussen@gmail.com") }
+    var phone by remember { mutableStateOf("+88-692-764-269") }
+
+    LaunchedEffect(userProfile) {
+        userProfile?.let {
+            email = it.email
+            phone = it.phone
+        }
+    }
+
+    LaunchedEffect(isEmailEditable) {
+        if (isEmailEditable) {
+            emailFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    LaunchedEffect(isPhoneEditable) {
+        if (isPhoneEditable) {
+            phoneFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
 
     Scaffold(
         containerColor = colorResource(id = R.color.background_color),
@@ -248,15 +325,31 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                         Column(
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = "rumenhussen@gmail.com",
-                                fontSize = 14.sp,
-                                lineHeight = 16.sp,
-                                fontFamily = fonts,
-                                fontWeight = FontWeight.Normal,
-                                fontStyle = FontStyle.Normal,
-                                color = Color(0xFF1A2530)
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
                             )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = email,
+                                    onValueChange = { newValue: String ->
+                                        email = newValue
+                                    },
+                                    readOnly = !isEmailEditable,
+                                    textStyle = TextStyle(
+                                        fontSize = 14.sp,
+                                        lineHeight = 16.sp,
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.Normal,
+                                        fontStyle = FontStyle.Normal,
+                                        color = Color(0xFF1A2530)
+                                    ),
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .focusRequester(emailFocusRequester)
+                                )
+                            }
 
                             Text(
                                 text = "Email",
@@ -276,6 +369,21 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             contentDescription = "Edit Icon",
                             tint = Color(0xFF707B81),
                             modifier = Modifier.size(20.dp)
+                                .clickable(
+                                    interactionSource = emailInteraction,
+                                    indication = null
+                                ) {
+                                    isEmailEditable = !isEmailEditable
+
+                                    if (!isEmailEditable) {
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
+                                    }
+                                }
+                                .graphicsLayer(
+                                    scaleX = emailScale,
+                                    scaleY = emailScale
+                                )
                         )
                     }
 
@@ -304,15 +412,31 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                         Column(
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = "+88-692 -764-269",
-                                fontSize = 14.sp,
-                                lineHeight = 16.sp,
-                                fontFamily = fonts,
-                                fontWeight = FontWeight.Normal,
-                                fontStyle = FontStyle.Normal,
-                                color = Color(0xFF1A2530)
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
                             )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = phone,
+                                    onValueChange = { newValue: String ->
+                                        phone = newValue
+                                    },
+                                    readOnly = !isPhoneEditable,
+                                    textStyle = TextStyle(
+                                        fontSize = 14.sp,
+                                        lineHeight = 16.sp,
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.Normal,
+                                        fontStyle = FontStyle.Normal,
+                                        color = Color(0xFF1A2530)
+                                    ),
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .focusRequester(phoneFocusRequester)
+                                )
+                            }
 
                             Text(
                                 text = "Phone",
@@ -332,6 +456,21 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             contentDescription = "Edit Icon",
                             tint = Color(0xFF707B81),
                             modifier = Modifier.size(20.dp)
+                                .clickable(
+                                    interactionSource = phoneInteraction,
+                                    indication = null
+                                ) {
+                                    isPhoneEditable = !isPhoneEditable
+
+                                    if (!isPhoneEditable) {
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
+                                    }
+                                }
+                                .graphicsLayer(
+                                    scaleX = phoneScale,
+                                    scaleY = phoneScale
+                                )
                         )
                     }
 
@@ -372,7 +511,19 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             painter = painterResource(R.drawable.arrow_icon),
                             contentDescription = "Arrow Icon",
                             tint = Color(0xFF707B81),
-                            modifier = Modifier.size(15.dp).rotate(-90f)
+                            modifier = Modifier.size(15.dp)
+                                .clickable (
+                                    interactionSource = addressArrowInteraction,
+                                    indication = null
+                                ) {
+                                    isAddressExpanded = !isAddressExpanded
+                                    showAddressDialog = true
+                                }
+                                .rotate(addressRotation)
+                                .graphicsLayer(
+                                    scaleX = addressArrowScale,
+                                    scaleY = addressArrowScale
+                                )
                         )
                     }
 
@@ -413,8 +564,8 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.paypal),
-                                contentDescription = "Payment Icon",
+                                painter = painterResource(R.drawable.card_logo),
+                                contentDescription = "Card Icon",
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -426,7 +577,7 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "Paypal Card",
+                                text = "Credit Card",
                                 fontSize = 14.sp,
                                 lineHeight = 16.sp,
                                 fontFamily = fonts,
@@ -436,7 +587,7 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             )
 
                             Text(
-                                text = "**** **** 0696 4629",
+                                text = "**** **** Card Number",
                                 fontSize = 12.sp,
                                 lineHeight = 14.sp,
                                 fontFamily = fonts,
@@ -452,7 +603,20 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                             painter = painterResource(R.drawable.arrow_icon),
                             contentDescription = "Arrow Icon",
                             tint = Color(0xFF707B81),
-                            modifier = Modifier.size(15.dp).rotate(-90f)
+                            modifier = Modifier
+                                .size(15.dp)
+                                .rotate(paymentRotation)
+                                .clickable (
+                                    interactionSource = paymentArrowInteraction,
+                                    indication = null
+                                ) {
+                                    isPaymentExpanded = !isPaymentExpanded
+                                    showCardDialog = true
+                                }
+                                .graphicsLayer(
+                                    scaleX = paymentArrowScale,
+                                    scaleY = paymentArrowScale
+                                )
                         )
                     }
                 }
@@ -570,6 +734,652 @@ private fun Checkout_Screen(subtotal: Double, totalCost: Double, shipping: Doubl
                         fontFamily = fonts, fontWeight = FontWeight.Bold,
                         fontStyle = FontStyle.Normal, color = Color(0xFFFFFFFF)
                     )
+                }
+            }
+
+            if (showCardDialog) {
+                CardBottomDialog(
+                    title = "Update Address",
+                    message = "Please enter your address details to update your delivery information.",
+                    confirmText = "Continue",
+                    dismissText = "Cancel",
+                    onConfirm = {
+
+                    },
+                    onDismiss = {
+                        showCardDialog = false
+                        isPaymentExpanded = !isPaymentExpanded
+                    }
+                )
+            }
+
+            if (showAddressDialog) {
+                IOSStyleBottomDialog(
+                    title = "Update Address",
+                    message = "Please enter your address details to update your delivery information.",
+                    addressLine = addressLine,
+                    onAddressLineChange = {
+                        addressLine = it
+                    },
+                    city = city,
+                    onCityChange = {
+                        city = it
+                    },
+                    postcode = postcode,
+                    onPostCodeChange = {
+                        postcode = it
+                    },
+                    country = country,
+                    onCountryChange = {
+                        country = it
+                    },
+                    confirmText = "Continue",
+                    dismissText = "Cancel",
+                    onConfirm = {
+
+                    },
+                    onDismiss = {
+                        showAddressDialog = false
+                        isAddressExpanded = !isAddressExpanded
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CardBottomDialog(
+    title: String,
+    message: String,
+    confirmText: String = "Confirm",
+    dismissText: String = "Cancel",
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 22.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFFF8F9FA),
+                tonalElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontFamily = fonts,
+                        fontSize = 17.sp, lineHeight = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530),
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = message,
+                        fontFamily = fonts,
+                        fontSize = 13.sp, lineHeight = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF707B81)
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            modifier = Modifier.fillMaxWidth().height(190.dp),
+                            painter = painterResource(R.drawable.card_matt_black),
+                            contentDescription = null
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF707B81).copy(alpha = 0.2f))
+                                .clickable { onDismiss() }
+                                .padding(vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dismissText,
+                                color = Color(0xFF707B81),
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF5B9EE1))
+                                .clickable {
+
+                                    onConfirm()
+                                }
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = confirmText,
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal,
+                                color = Color(0xFFFFFFFF)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun IOSStyleBottomDialog(
+    title: String,
+    message: String,
+    addressLine: String,
+    onAddressLineChange: (String) -> Unit,
+    city: String,
+    onCityChange: (String) -> Unit,
+    postcode: String,
+    onPostCodeChange: (String) -> Unit,
+    country: String,
+    onCountryChange: (String) -> Unit,
+    confirmText: String = "Confirm",
+    dismissText: String = "Cancel",
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var addressLineError by remember { mutableStateOf(false) }
+    var addressLineErrorText by remember { mutableStateOf("") }
+    var cityError by remember { mutableStateOf(false) }
+    var cityErrorText by remember { mutableStateOf("") }
+    var postcodeError by remember { mutableStateOf(false) }
+    var postcodeErrorText by remember { mutableStateOf("") }
+    var countryError by remember { mutableStateOf(false) }
+    var countryErrorText by remember { mutableStateOf("") }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 22.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFFF8F9FA),
+                tonalElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontFamily = fonts,
+                        fontSize = 17.sp, lineHeight = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530),
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = message,
+                        fontFamily = fonts,
+                        fontSize = 13.sp, lineHeight = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontStyle = FontStyle.Normal,
+                        color = Color(0xFF707B81)
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start),
+                        text = "AddressLine", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (addressLineError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText) = createRefs()
+
+                            if (addressLine.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter AddressLine",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = addressLine,
+                                    onValueChange = {
+                                        onAddressLineChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            addressLineError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                )
+                            }
+                        }
+                    }
+
+                    if (addressLineError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = addressLineErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start),
+                        text = "City", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (cityError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText) = createRefs()
+
+                            if (city.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter City",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = city,
+                                    onValueChange = {
+                                        onCityChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            cityError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                )
+                            }
+                        }
+                    }
+
+                    if (cityError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = cityErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start),
+                        text = "Postcode", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (postcodeError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText) = createRefs()
+
+                            if (postcode.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter Postcode",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = postcode,
+                                    onValueChange = {
+                                        onPostCodeChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            postcodeError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                )
+                            }
+                        }
+                    }
+
+                    if (postcodeError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = postcodeErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start),
+                        text = "Country", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (countryError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText) = createRefs()
+
+                            if (country.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter Country",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = country,
+                                    onValueChange = {
+                                        onCountryChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            countryError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                )
+                            }
+                        }
+                    }
+
+                    if (countryError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = countryErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF707B81).copy(alpha = 0.2f))
+                                .clickable { onDismiss() }
+                                .padding(vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dismissText,
+                                color = Color(0xFF707B81),
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF5B9EE1))
+                                .clickable {
+                                    keyboardController?.hide()
+                                    addressLineError = addressLine.isBlank()
+                                    cityError = city.isBlank()
+                                    postcodeError = postcode.isBlank()
+                                    countryError = country.isBlank()
+
+                                    addressLineErrorText = if (addressLine.isBlank()) "Please enter addressLine" else ""
+                                    cityErrorText = if (city.isBlank()) "Please enter city" else ""
+                                    postcodeErrorText = if (postcode.isBlank()) "Please enter postcode" else ""
+                                    countryErrorText = if (country.isBlank()) "Please enter country" else ""
+
+                                    if (addressLineErrorText.isNotEmpty() || cityErrorText.isNotEmpty() || postcodeErrorText.isNotEmpty() || countryErrorText.isNotEmpty()) return@clickable
+
+                                    addressLineErrorText = ""
+                                    cityErrorText = ""
+                                    postcodeErrorText = ""
+                                    countryErrorText = ""
+
+                                    onConfirm() }
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = confirmText,
+                                fontSize = 15.sp, lineHeight = 15.sp,
+                                fontFamily = fonts, fontWeight = FontWeight.Bold,
+                                fontStyle = FontStyle.Normal,
+                                color = Color(0xFFFFFFFF)
+                            )
+                        }
+                    }
                 }
             }
         }

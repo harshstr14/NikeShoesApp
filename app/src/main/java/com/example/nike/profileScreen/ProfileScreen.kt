@@ -329,7 +329,6 @@ fun ProfileScreen(
             model = imageUrl,
             contentDescription = "Profile Image",
             contentScale = ContentScale.Crop,
-            placeholder = painterResource(R.drawable.logo),
             error = painterResource(R.drawable.logo),
             modifier = Modifier
                 .padding(top = 95.dp)
