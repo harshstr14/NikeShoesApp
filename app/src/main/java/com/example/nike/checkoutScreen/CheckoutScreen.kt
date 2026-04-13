@@ -131,8 +131,13 @@ private fun Checkout_Screen(
     var city by remember { mutableStateOf("") }
     var postcode by remember { mutableStateOf("") }
     var country by remember { mutableStateOf("") }
-    val addressRotation by animateFloatAsState(if (isAddressExpanded) 90f else -90f)
-    val paymentRotation by animateFloatAsState(if (isPaymentExpanded) 90f else -90f)
+    val addressArrowRotation by animateFloatAsState(if (isAddressExpanded) 90f else -90f)
+
+    var cardNumber by remember { mutableStateOf("") }
+    var cardHolderName by remember { mutableStateOf("") }
+    var expiryDate by remember { mutableStateOf("") }
+    var cardCVV by remember { mutableStateOf("") }
+    val paymentArrowRotation by animateFloatAsState(if (isPaymentExpanded) 90f else -90f)
 
     val emailFocusRequester = remember { FocusRequester() }
     val phoneFocusRequester = remember { FocusRequester() }
@@ -519,7 +524,7 @@ private fun Checkout_Screen(
                                     isAddressExpanded = !isAddressExpanded
                                     showAddressDialog = true
                                 }
-                                .rotate(addressRotation)
+                                .rotate(addressArrowRotation)
                                 .graphicsLayer(
                                     scaleX = addressArrowScale,
                                     scaleY = addressArrowScale
@@ -605,7 +610,7 @@ private fun Checkout_Screen(
                             tint = Color(0xFF707B81),
                             modifier = Modifier
                                 .size(15.dp)
-                                .rotate(paymentRotation)
+                                .rotate(paymentArrowRotation)
                                 .clickable (
                                     interactionSource = paymentArrowInteraction,
                                     indication = null
@@ -739,8 +744,24 @@ private fun Checkout_Screen(
 
             if (showCardDialog) {
                 CardBottomDialog(
-                    title = "Update Address",
-                    message = "Please enter your address details to update your delivery information.",
+                    title = "Update Card Details",
+                    message = "Please enter your credit card information to update your payment details.",
+                    cardNumber = cardNumber,
+                    onCardNumberChange = {
+                        cardNumber = it
+                    },
+                    cardHolderName = cardHolderName,
+                    onCardHolderNameChange = {
+                        cardHolderName = it
+                    },
+                    cardCVV = cardCVV,
+                    onCardCVVChange = {
+                        cardCVV = it
+                    },
+                    expiryDate = expiryDate,
+                    onExpiryDateChange = {
+                        expiryDate = it
+                    },
                     confirmText = "Continue",
                     dismissText = "Cancel",
                     onConfirm = {
@@ -792,11 +813,29 @@ private fun Checkout_Screen(
 fun CardBottomDialog(
     title: String,
     message: String,
+    cardNumber: String,
+    onCardNumberChange: (String) -> Unit,
+    cardHolderName: String,
+    onCardHolderNameChange: (String) -> Unit,
+    cardCVV: String,
+    onCardCVVChange: (String) -> Unit,
+    expiryDate: String,
+    onExpiryDateChange: (String) -> Unit,
     confirmText: String = "Confirm",
     dismissText: String = "Cancel",
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var cardNumberError by remember { mutableStateOf(false) }
+    var cardNumberErrorText by remember { mutableStateOf("") }
+    var cardHolderNameError by remember { mutableStateOf(false) }
+    var cardHolderNameErrorText by remember { mutableStateOf("") }
+    var cardCVVError by remember { mutableStateOf(false) }
+    var cardCVVErrorText by remember { mutableStateOf("") }
+    var expiryDateError by remember { mutableStateOf(false) }
+    var expiryDateErrorText by remember { mutableStateOf("") }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -836,18 +875,493 @@ fun CardBottomDialog(
                         color = Color(0xFF707B81)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     Box(
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(horizontal = 5.dp),
+                        modifier = Modifier.fillMaxWidth().height(200.dp)
+                            .padding(horizontal = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            modifier = Modifier.fillMaxWidth().height(190.dp),
+                            modifier = Modifier.fillMaxWidth().height(200.dp),
                             painter = painterResource(R.drawable.card_matt_black),
                             contentDescription = null
                         )
+
+                        Icon(
+                            painter = painterResource(R.drawable.card_logo),
+                            contentDescription = "Card Icon",
+                            tint = Color.Unspecified,
+                            modifier = Modifier
+                                .padding(25.dp)
+                                .padding(top = 5.dp)
+                                .size(38.dp)
+                                .align(Alignment.TopEnd)
+                        )
+
+                        Icon(
+                            painter = painterResource(R.drawable.sim_icon),
+                            contentDescription = "Sim Icon",
+                            tint = Color.Unspecified,
+                            modifier = Modifier
+                                .padding(25.dp)
+                                .padding(top = 5.dp)
+                                .size(42.dp)
+                                .align(Alignment.TopStart)
+                        )
+
+                        Text(
+                            modifier = Modifier.align(Alignment.TopStart)
+                                .padding(top = 100.dp, start = 25.dp),
+                            text = "1234  5678  4578  1235",
+                            fontFamily = fonts,
+                            fontSize = 17.sp, lineHeight = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontStyle = FontStyle.Normal,
+                            color = Color(0xFFFFFFFF),
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .padding(top = 100.dp, start = 25.dp)
+                        ) {
+                            Column (
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Card Holder Name",
+                                    fontFamily = fonts,
+                                    fontSize = 10.sp, lineHeight = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    color = Color(0xFF707B81)
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = "Harsh Suthar",
+                                    fontFamily = fonts,
+                                    fontSize = 12.sp, lineHeight = 15.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    color = Color(0xFFFFFFFF)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(15.dp))
+
+                            Column (
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Expiry Date",
+                                    fontFamily = fonts,
+                                    fontSize = 10.sp, lineHeight = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    color = Color(0xFF707B81)
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = "07/28",
+                                    fontFamily = fonts,
+                                    fontSize = 12.sp, lineHeight = 15.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    color = Color(0xFFFFFFFF)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(15.dp))
+
+                            Column (
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "CVV",
+                                    fontFamily = fonts,
+                                    fontSize = 10.sp, lineHeight = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    color = Color(0xFF707B81)
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = "866",
+                                    fontFamily = fonts,
+                                    fontSize = 12.sp, lineHeight = 15.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    color = Color(0xFFFFFFFF)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
+                        text = "Card Number", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (cardNumberError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText) = createRefs()
+
+                            if (cardNumber.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter Card Number",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = cardNumber,
+                                    onValueChange = {
+                                        onCardNumberChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            cardNumberError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                )
+                            }
+                        }
+                    }
+
+                    if (cardNumberError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = cardNumberErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
+                        text = "Card Holder Name", fontSize = 13.sp,
+                        lineHeight = 15.sp, fontFamily = fonts,
+                        fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                        color = Color(0xFF1A2530)
+                    )
+
+                    Box(modifier = Modifier.padding(vertical = 8.dp)
+                        .height(52.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = if (cardHolderNameError) Color.Red else Color.Transparent,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color(0xFFFFFFFF),
+                            shape = RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                            val (inputField, placeholderText) = createRefs()
+
+                            if (cardHolderName.isEmpty()) {
+                                Text(modifier = Modifier.constrainAs(placeholderText) {
+                                    top.linkTo(parent.top)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start, margin = 15.dp)
+                                    end.linkTo(parent.end, margin = 15.dp)
+                                    width = Dimension.fillToConstraints },
+                                    text = "Enter Card Holder Name",
+                                    fontFamily = fonts,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = FontStyle.Normal,
+                                    fontSize = 14.sp, lineHeight = 17.sp,
+                                    color = Color(0xFF707B81)
+                                )
+                            }
+
+                            val selectionColors = TextSelectionColors(
+                                handleColor = Color(0xFF1C1C1C),
+                                backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                            )
+
+                            CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                BasicTextField(
+                                    value = cardHolderName,
+                                    onValueChange = {
+                                        onCardHolderNameChange(it)
+
+                                        if (it.isNotBlank()) {
+                                            cardHolderNameError = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .constrainAs(inputField) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints
+                                        },
+                                    textStyle = TextStyle(
+                                        fontFamily = fonts,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp, lineHeight = 17.sp,
+                                        color = Color(0xFF707B81)
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                )
+                            }
+                        }
+                    }
+
+                    if (cardHolderNameError) {
+                        Text(
+                            modifier = Modifier.align(Alignment.Start),
+                            text = cardHolderNameErrorText,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
+                                text = "Expiry Date", fontSize = 13.sp,
+                                lineHeight = 15.sp, fontFamily = fonts,
+                                fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                                color = Color(0xFF1A2530)
+                            )
+
+                            Box(modifier = Modifier.padding(vertical = 8.dp)
+                                .height(52.dp)
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (expiryDateError) Color.Red else Color.Transparent,
+                                    shape = RoundedCornerShape(28.dp)
+                                )
+                                .background(Color(0xFFFFFFFF),
+                                    shape = RoundedCornerShape(28.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                                    val (inputField, placeholderText) = createRefs()
+
+                                    if (expiryDate.isEmpty()) {
+                                        Text(modifier = Modifier.constrainAs(placeholderText) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints },
+                                            text = "Expiry Date",
+                                            fontFamily = fonts,
+                                            fontWeight = FontWeight.Normal,
+                                            fontStyle = FontStyle.Normal,
+                                            fontSize = 14.sp, lineHeight = 17.sp,
+                                            color = Color(0xFF707B81)
+                                        )
+                                    }
+
+                                    val selectionColors = TextSelectionColors(
+                                        handleColor = Color(0xFF1C1C1C),
+                                        backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                                    )
+
+                                    CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                        BasicTextField(
+                                            value = expiryDate,
+                                            onValueChange = {
+                                                onExpiryDateChange(it)
+
+                                                if (it.isNotBlank()) {
+                                                    expiryDateError = false
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .constrainAs(inputField) {
+                                                    top.linkTo(parent.top)
+                                                    bottom.linkTo(parent.bottom)
+                                                    start.linkTo(parent.start, margin = 15.dp)
+                                                    end.linkTo(parent.end, margin = 15.dp)
+                                                    width = Dimension.fillToConstraints
+                                                },
+                                            textStyle = TextStyle(
+                                                fontFamily = fonts,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontStyle = FontStyle.Normal,
+                                                fontSize = 14.sp, lineHeight = 17.sp,
+                                                color = Color(0xFF707B81)
+                                            ),
+                                            singleLine = true,
+                                            cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (expiryDateError) {
+                                Text(
+                                    modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
+                                    text = expiryDateErrorText,
+                                    color = Color.Red,
+                                    fontSize = 12.sp,
+                                    lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                modifier = Modifier.align(Alignment.Start),
+                                text = "CVV", fontSize = 13.sp,
+                                lineHeight = 15.sp, fontFamily = fonts,
+                                fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
+                                color = Color(0xFF1A2530)
+                            )
+
+                            Box(modifier = Modifier.padding(vertical = 8.dp)
+                                .height(52.dp)
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (cardCVVError) Color.Red else Color.Transparent,
+                                    shape = RoundedCornerShape(28.dp)
+                                )
+                                .background(Color(0xFFFFFFFF),
+                                    shape = RoundedCornerShape(28.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                                    val (inputField, placeholderText) = createRefs()
+
+                                    if (cardCVV.isEmpty()) {
+                                        Text(modifier = Modifier.constrainAs(placeholderText) {
+                                            top.linkTo(parent.top)
+                                            bottom.linkTo(parent.bottom)
+                                            start.linkTo(parent.start, margin = 15.dp)
+                                            end.linkTo(parent.end, margin = 15.dp)
+                                            width = Dimension.fillToConstraints },
+                                            text = "Card CVV",
+                                            fontFamily = fonts,
+                                            fontWeight = FontWeight.Normal,
+                                            fontStyle = FontStyle.Normal,
+                                            fontSize = 14.sp, lineHeight = 17.sp,
+                                            color = Color(0xFF707B81)
+                                        )
+                                    }
+
+                                    val selectionColors = TextSelectionColors(
+                                        handleColor = Color(0xFF1C1C1C),
+                                        backgroundColor = Color(0xFF1C1C1C).copy(alpha = 0.3f)
+                                    )
+
+                                    CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+                                        BasicTextField(
+                                            value = cardCVV,
+                                            onValueChange = {
+                                                onCardCVVChange(it)
+
+                                                if (it.isNotBlank()) {
+                                                    cardCVVError = false
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .constrainAs(inputField) {
+                                                    top.linkTo(parent.top)
+                                                    bottom.linkTo(parent.bottom)
+                                                    start.linkTo(parent.start, margin = 15.dp)
+                                                    end.linkTo(parent.end, margin = 15.dp)
+                                                    width = Dimension.fillToConstraints
+                                                },
+                                            textStyle = TextStyle(
+                                                fontFamily = fonts,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontStyle = FontStyle.Normal,
+                                                fontSize = 14.sp, lineHeight = 17.sp,
+                                                color = Color(0xFF707B81)
+                                            ),
+                                            singleLine = true,
+                                            cursorBrush = SolidColor(Color(0xFF1C1C1C))
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (cardCVVError) {
+                                Text(
+                                    modifier = Modifier.align(Alignment.Start),
+                                    text = cardCVVErrorText,
+                                    color = Color.Red,
+                                    fontSize = 12.sp,
+                                    lineHeight = 14.sp, fontFamily = fonts, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -880,6 +1394,23 @@ fun CardBottomDialog(
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(Color(0xFF5B9EE1))
                                 .clickable {
+                                    keyboardController?.hide()
+                                    cardNumberError = cardNumber.isBlank()
+                                    cardHolderNameError = cardHolderName.isBlank()
+                                    expiryDateError = expiryDate.isBlank()
+                                    cardCVVError = cardCVV.isBlank()
+
+                                    cardNumberErrorText = if (cardNumber.isBlank()) "Please enter card number" else ""
+                                    cardHolderNameErrorText = if (cardHolderName.isBlank()) "Please enter card holder name" else ""
+                                    expiryDateErrorText = if (expiryDate.isBlank()) "Please enter expiry date" else ""
+                                    cardCVVErrorText = if (cardCVV.isBlank()) "Please enter card CVV" else ""
+
+                                    if (cardNumberErrorText.isNotEmpty() || cardHolderNameErrorText.isNotEmpty() || expiryDateErrorText.isNotEmpty() || cardCVVErrorText.isNotEmpty()) return@clickable
+
+                                    cardNumberErrorText = ""
+                                    cardHolderNameErrorText = ""
+                                    expiryDateErrorText = ""
+                                    cardCVVErrorText = ""
 
                                     onConfirm()
                                 }
@@ -970,7 +1501,7 @@ fun IOSStyleBottomDialog(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
-                        modifier = Modifier.align(Alignment.Start),
+                        modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
                         text = "AddressLine", fontSize = 13.sp,
                         lineHeight = 15.sp, fontFamily = fonts,
                         fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
@@ -1055,10 +1586,10 @@ fun IOSStyleBottomDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        modifier = Modifier.align(Alignment.Start),
+                        modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
                         text = "City", fontSize = 13.sp,
                         lineHeight = 15.sp, fontFamily = fonts,
                         fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
@@ -1143,10 +1674,10 @@ fun IOSStyleBottomDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        modifier = Modifier.align(Alignment.Start),
+                        modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
                         text = "Postcode", fontSize = 13.sp,
                         lineHeight = 15.sp, fontFamily = fonts,
                         fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
@@ -1231,10 +1762,10 @@ fun IOSStyleBottomDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        modifier = Modifier.align(Alignment.Start),
+                        modifier = Modifier.align(Alignment.Start).padding(start = 2.dp),
                         text = "Country", fontSize = 13.sp,
                         lineHeight = 15.sp, fontFamily = fonts,
                         fontWeight = FontWeight.Bold, fontStyle = FontStyle.Normal,
