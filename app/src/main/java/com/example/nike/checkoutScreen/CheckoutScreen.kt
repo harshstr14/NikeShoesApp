@@ -934,7 +934,7 @@ fun CardBottomDialog(
                                     fontSize = 10.sp, lineHeight = 12.sp,
                                     fontWeight = FontWeight.Normal,
                                     fontStyle = FontStyle.Normal,
-                                    color = Color(0xFF707B81)
+                                    color = Color(0xFFFFFFFF).copy(alpha = 0.4f)
                                 )
 
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -960,7 +960,7 @@ fun CardBottomDialog(
                                     fontSize = 10.sp, lineHeight = 12.sp,
                                     fontWeight = FontWeight.Normal,
                                     fontStyle = FontStyle.Normal,
-                                    color = Color(0xFF707B81)
+                                    color = Color(0xFFFFFFFF).copy(alpha = 0.4f)
                                 )
 
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -986,7 +986,7 @@ fun CardBottomDialog(
                                     fontSize = 10.sp, lineHeight = 12.sp,
                                     fontWeight = FontWeight.Normal,
                                     fontStyle = FontStyle.Normal,
-                                    color = Color(0xFF707B81)
+                                    color = Color(0xFFFFFFFF).copy(alpha = 0.4f)
                                 )
 
                                 Spacer(modifier = Modifier.height(2.dp))
