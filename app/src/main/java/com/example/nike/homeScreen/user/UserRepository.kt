@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 
+data class CardInfo(
+    val last4Digits: String = "",
+    val cardHolderName: String = "",
+    val expiryDate: String = ""
+)
+
 class UserRepository {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseDatabase.getInstance().reference
@@ -287,5 +293,52 @@ class UserRepository {
         }
 
         awaitClose {}
+    }
+
+    fun saveCard(cardNumber: String, holder: String, expiry: String): Flow<String> = flow {
+        val userId = auth.currentUser?.uid ?: throw Exception("User not logged in")
+
+        val cardData = mapOf(
+            "last4Digits" to cardNumber.takeLast(4),
+            "cardHolderName" to holder,
+            "expiryDate" to expiry
+        )
+
+        db.child("Users")
+            .child(userId)
+            .child("Card")
+            .setValue(cardData)
+            .await()
+
+        emit("Card saved successfully")
+    }
+
+    fun getCard(): Flow<CardInfo?> = callbackFlow {
+        val userId = auth.currentUser?.uid ?: return@callbackFlow
+
+        val ref = db.child("Users")
+            .child(userId)
+            .child("Card")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val card = CardInfo(
+                    last4Digits = snapshot.child("last4Digits").getValue(String::class.java) ?: "",
+                    cardHolderName = snapshot.child("cardHolderName").getValue(String::class.java) ?: "",
+                    expiryDate = snapshot.child("expiryDate").getValue(String::class.java) ?: ""
+                )
+                trySend(card)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addValueEventListener(listener)
+
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
     }
 }

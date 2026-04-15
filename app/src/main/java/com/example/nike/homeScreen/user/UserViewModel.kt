@@ -19,6 +19,9 @@ class UserViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<String?>(null)
     val uiState: StateFlow<String?> = _uiState
 
+    private val _cardState = MutableStateFlow<CardInfo?>(null)
+    val cardState: StateFlow<CardInfo?> = _cardState
+
     private val _favoritesState =
         MutableStateFlow<FavouriteUiState>(FavouriteUiState.Loading)
     val favoritesState: StateFlow<FavouriteUiState> = _favoritesState
@@ -34,6 +37,23 @@ class UserViewModel : ViewModel() {
         loadFavorites()
         loadCart()
         loadUserProfile()
+        loadCard()
+    }
+
+    fun loadCard() {
+        viewModelScope.launch {
+            repo.getCard().collect {
+                _cardState.value = it
+            }
+        }
+    }
+
+    fun saveCard(cardNumber: String, holder: String, expiry: String) {
+        viewModelScope.launch {
+            repo.saveCard(cardNumber, holder, expiry).collect {
+                _uiState.value = it
+            }
+        }
     }
 
     fun loadUserProfile() {

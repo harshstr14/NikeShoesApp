@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Icon
@@ -58,9 +59,14 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +82,39 @@ import com.example.nike.pressScale
 import com.example.nike.screens.fonts
 import com.example.nike.ui.theme.NikeTheme
 import java.util.Locale
+
+class ExpiryDateVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = text.text.take(4) // MMYY only
+
+        val formatted = buildString {
+            for (i in trimmed.indices) {
+                append(trimmed[i])
+                if (i == 1 && i != trimmed.lastIndex) {
+                    append("/") // add slash after month
+                }
+            }
+        }
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                return when {
+                    offset <= 2 -> offset
+                    else -> offset + 1
+                }
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                return when {
+                    offset <= 2 -> offset
+                    else -> offset - 1
+                }
+            }
+        }
+
+        return TransformedText(AnnotatedString(formatted), offsetMapping)
+    }
+}
 
 class CheckoutScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -166,6 +205,25 @@ private fun Checkout_Screen(
         if (isPhoneEditable) {
             phoneFocusRequester.requestFocus()
             keyboardController?.show()
+        }
+    }
+
+    val cardState by viewModel.cardState.collectAsState()
+
+    val displayCardNumber = if (!cardState?.last4Digits.isNullOrEmpty()) {
+        "**** **** **** ${cardState?.last4Digits}"
+    } else {
+        "**** **** Card Number"
+    }
+
+    LaunchedEffect(showCardDialog) {
+        if (showCardDialog) {
+            cardState?.let {
+                cardNumber = "************${it.last4Digits}"
+                cardHolderName = it.cardHolderName
+                expiryDate = it.expiryDate
+                cardCVV = "***"
+            }
         }
     }
 
@@ -592,7 +650,7 @@ private fun Checkout_Screen(
                             )
 
                             Text(
-                                text = "**** **** Card Number",
+                                text = displayCardNumber,
                                 fontSize = 12.sp,
                                 lineHeight = 14.sp,
                                 fontFamily = fonts,
@@ -765,7 +823,12 @@ private fun Checkout_Screen(
                     confirmText = "Continue",
                     dismissText = "Cancel",
                     onConfirm = {
-
+                        viewModel.saveCard(
+                            cardNumber,
+                            cardHolderName,
+                            expiryDate
+                        )
+                        showCardDialog = false
                     },
                     onDismiss = {
                         showCardDialog = false
@@ -835,6 +898,20 @@ fun CardBottomDialog(
     var cardCVVErrorText by remember { mutableStateOf("") }
     var expiryDateError by remember { mutableStateOf(false) }
     var expiryDateErrorText by remember { mutableStateOf("") }
+
+    val formattedExpiry = when {
+        expiryDate.length >= 3 -> {
+            expiryDate.take(2) + "/" + expiryDate.drop(2)
+        }
+        expiryDate.isNotEmpty() -> expiryDate
+        else -> "MM/YY"
+    }
+
+    val formattedCardNumber = when {
+        cardNumber.length >= 4 -> cardNumber.chunked(4).joinToString(" ")
+        cardNumber.isNotEmpty() -> cardNumber
+        else -> "XXXX XXXX XXXX XXXX"
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -913,7 +990,7 @@ fun CardBottomDialog(
                         Text(
                             modifier = Modifier.align(Alignment.TopStart)
                                 .padding(top = 100.dp, start = 25.dp),
-                            text = "1234  5678  4578  1235",
+                            text = formattedCardNumber,
                             fontFamily = fonts,
                             fontSize = 17.sp, lineHeight = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -940,7 +1017,7 @@ fun CardBottomDialog(
                                 Spacer(modifier = Modifier.height(2.dp))
 
                                 Text(
-                                    text = "Harsh Suthar",
+                                    text = cardHolderName.ifBlank { "CARD HOLDER" },
                                     fontFamily = fonts,
                                     fontSize = 12.sp, lineHeight = 15.sp,
                                     fontWeight = FontWeight.Normal,
@@ -966,7 +1043,7 @@ fun CardBottomDialog(
                                 Spacer(modifier = Modifier.height(2.dp))
 
                                 Text(
-                                    text = "07/28",
+                                    text = formattedExpiry,
                                     fontFamily = fonts,
                                     fontSize = 12.sp, lineHeight = 15.sp,
                                     fontWeight = FontWeight.Normal,
@@ -992,7 +1069,7 @@ fun CardBottomDialog(
                                 Spacer(modifier = Modifier.height(2.dp))
 
                                 Text(
-                                    text = "866",
+                                    text = cardCVV.ifBlank { "XXX" },
                                     fontFamily = fonts,
                                     fontSize = 12.sp, lineHeight = 15.sp,
                                     fontWeight = FontWeight.Normal,
@@ -1052,13 +1129,15 @@ fun CardBottomDialog(
                             CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
                                 BasicTextField(
                                     value = cardNumber,
-                                    onValueChange = {
-                                        onCardNumberChange(it)
+                                    onValueChange = { input ->
+                                        val digits = input.filter { it.isDigit() }.take(16)
+                                        onCardNumberChange(digits)
 
-                                        if (it.isNotBlank()) {
+                                        if (digits.isNotBlank()) {
                                             cardNumberError = false
                                         }
                                     },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier
                                         .constrainAs(inputField) {
                                             top.linkTo(parent.top)
@@ -1233,13 +1312,30 @@ fun CardBottomDialog(
                                     CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
                                         BasicTextField(
                                             value = expiryDate,
-                                            onValueChange = {
-                                                onExpiryDateChange(it)
+                                            onValueChange = { input ->
+                                                val digits = input.filter { it.isDigit() }.take(4)
 
-                                                if (it.isNotBlank()) {
-                                                    expiryDateError = false
+                                                var corrected = digits
+
+                                                if (digits.length >= 2) {
+                                                    var month = digits.take(2)
+
+                                                    val monthInt = month.toIntOrNull() ?: 1
+                                                    month = when {
+                                                        monthInt == 0 -> "01"
+                                                        monthInt > 12 -> "12"
+                                                        else -> month.padStart(2, '0')
+                                                    }
+
+                                                    corrected = month + digits.drop(2)
                                                 }
+
+                                                if (input.isNotBlank()) { expiryDateError = false }
+
+                                                onExpiryDateChange(corrected)
                                             },
+                                            visualTransformation = ExpiryDateVisualTransformation(),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier
                                                 .constrainAs(inputField) {
                                                     top.linkTo(parent.top)
@@ -1323,13 +1419,15 @@ fun CardBottomDialog(
                                     CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
                                         BasicTextField(
                                             value = cardCVV,
-                                            onValueChange = {
-                                                onCardCVVChange(it)
+                                            onValueChange = { input ->
+                                                val digits = input.filter { it.isDigit() }.take(3)
+                                                onCardCVVChange(digits)
 
-                                                if (it.isNotBlank()) {
+                                                if (input.isNotBlank()) {
                                                     cardCVVError = false
                                                 }
                                             },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier
                                                 .constrainAs(inputField) {
                                                     top.linkTo(parent.top)
