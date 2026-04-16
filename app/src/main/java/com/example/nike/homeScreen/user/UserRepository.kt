@@ -19,6 +19,13 @@ data class CardInfo(
     val expiryDate: String = ""
 )
 
+data class AddressInfo(
+    val addressLine: String = "",
+    val city: String = "",
+    val postcode: String = "",
+    val country: String = ""
+)
+
 class UserRepository {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseDatabase.getInstance().reference
@@ -328,6 +335,61 @@ class UserRepository {
                     expiryDate = snapshot.child("expiryDate").getValue(String::class.java) ?: ""
                 )
                 trySend(card)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addValueEventListener(listener)
+
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
+    }
+
+    fun saveAddress(
+        addressLine: String,
+        city: String,
+        postcode: String,
+        country: String
+    ): Flow<String> = flow {
+
+        val userId = auth.currentUser?.uid ?: throw Exception("User not logged in")
+
+        val addressData = mapOf(
+            "addressLine" to addressLine,
+            "city" to city,
+            "postcode" to postcode,
+            "country" to country
+        )
+
+        db.child("Users")
+            .child(userId)
+            .child("Address")
+            .setValue(addressData)
+            .await()
+
+        emit("Address saved successfully")
+    }
+
+    fun getAddress(): Flow<AddressInfo?> = callbackFlow {
+        val userId = auth.currentUser?.uid ?: return@callbackFlow
+
+        val ref = db.child("Users")
+            .child(userId)
+            .child("Address")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val address = AddressInfo(
+                    addressLine = snapshot.child("addressLine").getValue(String::class.java) ?: "",
+                    city = snapshot.child("city").getValue(String::class.java) ?: "",
+                    postcode = snapshot.child("postcode").getValue(String::class.java) ?: "",
+                    country = snapshot.child("country").getValue(String::class.java) ?: ""
+                )
+                trySend(address)
             }
 
             override fun onCancelled(error: DatabaseError) {

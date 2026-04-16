@@ -22,6 +22,9 @@ class UserViewModel : ViewModel() {
     private val _cardState = MutableStateFlow<CardInfo?>(null)
     val cardState: StateFlow<CardInfo?> = _cardState
 
+    private val _addressState = MutableStateFlow<AddressInfo?>(null)
+    val addressState: StateFlow<AddressInfo?> = _addressState
+
     private val _favoritesState =
         MutableStateFlow<FavouriteUiState>(FavouriteUiState.Loading)
     val favoritesState: StateFlow<FavouriteUiState> = _favoritesState
@@ -38,6 +41,28 @@ class UserViewModel : ViewModel() {
         loadCart()
         loadUserProfile()
         loadCard()
+        loadAddress()
+    }
+
+    fun loadAddress() {
+        viewModelScope.launch {
+            repo.getAddress().collect {
+                _addressState.value = it
+            }
+        }
+    }
+
+    fun saveAddress(
+        addressLine: String,
+        city: String,
+        postcode: String,
+        country: String
+    ) {
+        viewModelScope.launch {
+            repo.saveAddress(addressLine, city, postcode, country).collect {
+                _uiState.value = it
+            }
+        }
     }
 
     fun loadCard() {

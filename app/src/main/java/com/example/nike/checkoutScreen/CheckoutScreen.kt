@@ -216,6 +216,19 @@ private fun Checkout_Screen(
         "**** **** Card Number"
     }
 
+    val address by viewModel.addressState.collectAsState()
+
+    val addressText = listOf(
+        address?.addressLine,
+        address?.city,
+        address?.postcode
+    ).filter { !it.isNullOrBlank() }
+        .joinToString(", ")
+
+    val finalAddress = if (!address?.country.isNullOrBlank()) {
+        "$addressText - ${address?.country}"
+    } else addressText
+
     LaunchedEffect(showCardDialog) {
         if (showCardDialog) {
             cardState?.let {
@@ -223,6 +236,17 @@ private fun Checkout_Screen(
                 cardHolderName = it.cardHolderName
                 expiryDate = it.expiryDate
                 cardCVV = "***"
+            }
+        }
+    }
+
+    LaunchedEffect(showAddressDialog) {
+        if (showAddressDialog) {
+            address?.let {
+                addressLine = it.addressLine
+                city = it.city
+                postcode = it.postcode
+                country = it.country
             }
         }
     }
@@ -559,7 +583,7 @@ private fun Checkout_Screen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Newahall St 36, London, 12908 - UK",
+                            text = finalAddress.ifBlank { "No Address Found" },
                             fontSize = 12.sp,
                             lineHeight = 14.sp,
                             fontFamily = fonts,
@@ -860,7 +884,14 @@ private fun Checkout_Screen(
                     confirmText = "Continue",
                     dismissText = "Cancel",
                     onConfirm = {
+                        viewModel.saveAddress(
+                            addressLine,
+                            city,
+                            postcode,
+                            country
+                        )
 
+                        showAddressDialog = false
                     },
                     onDismiss = {
                         showAddressDialog = false
