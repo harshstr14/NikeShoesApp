@@ -86,7 +86,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
 import com.example.nike.cartScreen.MyCartScreen
 import com.example.nike.favouriteScreen.FavouriteScreen
 import com.example.nike.googleAuthentication.GoogleSignInManager
@@ -487,9 +486,11 @@ fun DrawerContent(
             scope.launch {
                 drawerState.close()
             }
-            navController.navigate("profile") {
-                popUpTo("profile") { inclusive = true }
-                launchSingleTop = true
+
+            if (currentRoute != "profile") {
+                navController.navigate("profile") {
+                    launchSingleTop = true
+                }
             }
         }
 
@@ -501,9 +502,11 @@ fun DrawerContent(
             scope.launch {
                 drawerState.close()
             }
-            navController.navigate("home") {
-                popUpTo("home") { inclusive = true }
-                launchSingleTop = true
+
+            if (currentRoute != "home") {
+                navController.navigate("home") {
+                    launchSingleTop = true
+                }
             }
         }
 
@@ -529,9 +532,11 @@ fun DrawerContent(
             scope.launch {
                 drawerState.close()
             }
-            navController.navigate("favourites") {
-                popUpTo("favourites") { inclusive = true }
-                launchSingleTop = true
+
+            if (currentRoute != "favourites") {
+                navController.navigate("favourites") {
+                    launchSingleTop = true
+                }
             }
         }
 
@@ -557,9 +562,11 @@ fun DrawerContent(
             scope.launch {
                 drawerState.close()
             }
-            navController.navigate("notification") {
-                popUpTo("notification") { inclusive = true }
-                launchSingleTop = true
+
+            if (currentRoute != "notification") {
+                navController.navigate("notification") {
+                    launchSingleTop = true
+                }
             }
         }
 

@@ -17,52 +17,62 @@
         <activity
             android:name=".orderDetailScreen.OrderDetailScreen"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:label="@string/title_activity_order_detail_screen"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".orderScreen.OrderScreen"
             android:exported="false"
             android:label="@string/title_activity_order_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".detailsScreen.DetailsScreen"
             android:exported="false"
             android:label="@string/title_activity_details_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".checkoutScreen.CheckoutScreen"
             android:exported="false"
             android:label="@string/title_activity_checkout_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".cartScreen.MyCartScreen"
             android:exported="false"
             android:label="@string/title_activity_my_cart_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".MainScreen"
             android:exported="false"
             android:label="@string/title_activity_main_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".ForgetPasswordScreen"
             android:exported="false"
             android:label="@string/title_activity_forget_password_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".SignUpScreen"
             android:exported="false"
             android:label="@string/title_activity_sign_up_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".SignInScreen"
             android:exported="false"
             android:label="@string/title_activity_sign_in_screen"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name=".screens.ScreensActivity"
             android:exported="false"
             android:label="@string/title_activity_screens"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike" />
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
@@ -72,6 +82,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Nike">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

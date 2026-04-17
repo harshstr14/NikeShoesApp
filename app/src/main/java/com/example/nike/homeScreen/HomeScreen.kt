@@ -242,8 +242,11 @@ fun HomeScreen(navController: NavHostController, drawerState: DrawerState) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AutoImageSlider(viewModel: BannerViewModel = viewModel()) {
+    val context = LocalContext.current
     val bannerImages by viewModel.bannerImages.observeAsState(emptyList())
+    val bannerShoes by viewModel.banners.observeAsState(emptyList())
     val loading by viewModel.loading.observeAsState(false)
+    val interactionSource = remember { MutableInteractionSource() }
 
     LaunchedEffect(Unit) {
         viewModel.fetchBanners()
@@ -282,12 +285,24 @@ fun AutoImageSlider(viewModel: BannerViewModel = viewModel()) {
             pageSpacing = 12.dp
         ) { page ->
             val realIndex = page % bannerImages.size
+            val shoe = bannerShoes[realIndex]
 
             Image(
                 painter = rememberAsyncImagePainter(bannerImages[realIndex]),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(225.dp)
+                modifier = Modifier.fillMaxWidth()
+                    .height(225.dp)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                        val intent = Intent(context, DetailsScreen::class.java).apply {
+                            putExtra("shoe", shoe)
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        context.startActivity(intent)
+                    }
             )
         }
     }
