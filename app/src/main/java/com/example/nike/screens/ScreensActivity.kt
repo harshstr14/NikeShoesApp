@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -81,9 +80,9 @@ data class OnBoardingPage(
 )
 
 val pages = listOf(
-    OnBoardingPage(R.drawable.screen1, "Start Journey \nWith Nike", "Smart, Gorgeous & Fashionable \nCollection"),
-    OnBoardingPage(R.drawable.screen1, "Follow Latest \nStyle Shoes", "There Are Many Beautiful And \nAttractive Shoes"),
-    OnBoardingPage(R.drawable.screen1, "Summer Shoes \nNike 2022", "Amet Minim Lit Nodeseru Saku \nNandu sit Alique Dolor")
+    OnBoardingPage(R.drawable.shoe1, "Start Journey \nWith Nike", "Smart, Gorgeous & Fashionable \nCollection"),
+    OnBoardingPage(R.drawable.shoe2, "Follow Latest \nStyle Shoes", "There Are Many Beautiful And \nAttractive Shoes"),
+    OnBoardingPage(R.drawable.shoe3, "Summer Shoes \nNike 2022", "Amet Minim Lit Nodeseru Saku \nNandu sit Alique Dolor")
 )
 
 @Composable
@@ -106,7 +105,7 @@ private fun Screens_Activity() {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            Spacer(modifier = Modifier.height(125.dp))
+            Spacer(modifier = Modifier.height(155.dp))
 
             AnimatedContent(
                 targetState = currentPage,
@@ -142,8 +141,7 @@ private fun Screens_Activity() {
                         painter = painterResource(page.image),
                         contentDescription = null,
                         modifier = Modifier
-                            .size(320.dp)
-                            .rotate(-20f)
+                            .size(width = 345.dp, height = 321.dp)
                             .align(Alignment.CenterHorizontally),
                         contentScale = ContentScale.Crop
                     )
