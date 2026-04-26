@@ -70,13 +70,13 @@ This Android application allows users to browse a catalog of Nike shoes, add ite
     -   Firebase Authentication: For user authentication.
     -   Firebase Realtime Database: For storing user data, product information, cart details, and order history.
 -   ☁️ **Cloudinary :** For image management and storage.
--   🖼️ **Picasso :** For image loading and caching.
--   📦 **AndroidX Libraries :**
-    -   ⚙️ AppCompat: For backward compatibility.
-    -   📋 RecyclerView: For displaying lists of data.
-    -   📐 ConstraintLayout: For creating flexible layouts.
-    -   🎨 Material Components: For using Material Design elements.
-    -   🌌 EdgeToEdge : For immersive experiences with edge-to-edge content.
+-   🖼️ **Coil (Compose) :** For image loading and caching using AsyncImage.
+-   📦 **Jetpack Compose Libraries :**
+    -   🎨 Material 3 : For modern Material Design UI components (MaterialTheme, Button, Card, etc.).
+    -   📋 LazyColumn / LazyRow : For displaying lists of data (replacement for RecyclerView).
+    -   📐 Compose Layouts : Column, Row, Box for flexible UI design (instead of ConstraintLayout).
+    -   🌌 Edge-to-Edge UI : Using WindowInsets and SystemUiController for immersive UI experience.
+    -   ⚙️ Activity Compose : ComponentActivity with setContent {} to host Compose UI.
 -   🛠️ **Gradle :** For dependency management and building the application.
 
 ## 📋 𝗣𝗿𝗲𝗿𝗲𝗾𝘂𝗶𝘀𝗶𝘁𝗲𝘀
