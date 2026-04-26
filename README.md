@@ -1,4 +1,4 @@
-![Screens](./assets/Rounded_20260127_221503.png)
+![Screens](./assets/20260426_133257.png)
 # 👟 𝗡𝗶𝗸𝗲 - 𝗦𝗵𝗼𝗲𝘀𝗔𝗽𝗽 
 An Android application for browsing Nike shoes.
 
@@ -60,7 +60,7 @@ This Android application allows users to browse a catalog of Nike shoes, add ite
  
 ## 📸 𝗦𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁𝘀
 
-![Screens](./assets/Rounded_20260127_221519.png)
+![Screens](./assets/20260426_134736.png)
     
 ## 🛠️ 𝗧𝗲𝗰𝗵𝗻𝗼𝗹𝗼𝗴𝘆 𝗦𝘁𝗮𝗰𝗸
 
