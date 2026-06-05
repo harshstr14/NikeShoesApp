@@ -98,19 +98,19 @@ This Android application allows users to browse a catalog of Nike shoes, add ite
 
 ## 🚀 𝗜𝗻𝘀𝘁𝗮𝗹𝗹𝗮𝘁𝗶𝗼𝗻 𝗜𝗻𝘀𝘁𝗿𝘂𝗰𝘁𝗶𝗼𝗻𝘀
 
-### 1.  Clone the repository :
+1.  #### Clone the repository :
 
     ```bash
     git clone https://github.com/harshstr14/Nike-ShoesApp.git
     ```
 
-### 2.  Open the project in Android Studio.
+2. #### Open the project in Android Studio.
 
     *   Launch Android Studio.
     *   Click on "Open an Existing Project".
     *   Navigate to the cloned repository and select the `Nike-ShoesApp` folder.
 
-### 3.  Configure Firebase :
+3. #### Configure Firebase :
 
     *   Go to your Firebase project console.
     *   Add a new Android app to your Firebase project.
@@ -137,7 +137,7 @@ This Android application allows users to browse a catalog of Nike shoes, add ite
         }
         ```
 
-### 4.  Configure Cloudinary :
+4. #### Configure Cloudinary :
 
     *   Obtain your Cloudinary cloud name, API key, and API secret from your Cloudinary dashboard.
     *   Initialize Cloudinary in the `MyApp.kt` file:
@@ -161,7 +161,7 @@ This Android application allows users to browse a catalog of Nike shoes, add ite
         }
         ```
 
-### 5.  Build and run ▶️ the application :
+5. #### Build and run ▶️ the application :
 
     *   Connect an Android device or start an emulator.
     *   Click on "Run" in Android Studio to build and run the application on your device/emulator.
@@ -170,50 +170,50 @@ This Android application allows users to browse a catalog of Nike shoes, add ite
 
 ## 📖 𝗨𝘀𝗮𝗴𝗲 𝗚𝘂𝗶𝗱𝗲
 
-### 1.  👋 Launch the application.
+1. #### 👋 Launch the application.
 
     *   The app starts with a series of splash screens.
 
-### 2.  🔐 Sign-in/Sign-up :
+2. #### 🔐 Sign-in/Sign-up :
 
     *   If you don't have an account, click on the "Sign Up" button to create a new account.
     *   If you already have an account, enter your email and password and click on the "Sign In" button.
     *   You can also use Google Sign-in by clicking on the "Google Sign-in" button.
 
-### 3.  🛍️ Browse shoes :
+3. #### 🛍️ Browse shoes :
 
     *   Once signed in, you'll be taken to the home screen.
     *   Browse shoes by category using the category RecyclerView.
     *   Use the image slider to view featured products.
 
-### 4.  👟 View product details :
+4. #### 👟 View product details :
 
     *   Click on a shoe to view its details.
     *   Select your shoe size and click on the "Add to Cart" button to add the shoe to your cart.
     *   Add item to your favourite list
 
-### 5.  🛒 Manage cart :
+5. #### 🛒 Manage cart :
 
     *   Click on the cart icon in the bottom navigation bar to view your cart.
     *   Adjust the quantity of items in your cart.
     *   Remove items from your cart.
 
-### 6.  💳 Checkout :
+6. #### 💳 Checkout :
 
     *   Click on the "Checkout" button to proceed to the checkout page.
     *   Enter your shipping address and credit card details.
     *   Click on the "Payment" button to confirm your order.
 
-### 7.  📦 View order history :
+7. #### 📦 View order history :
 
     *   Click on the "Orders" item in the navigation drawer to view your order history.
 
-### 8.  👤 Manage profile :
+8. #### 👤 Manage profile :
 
     *   Click on the "Profile" item in the navigation drawer to view and update your profile information.
     *   Upload a new profile picture by clicking on the camera icon.
 
-### 9.  🚪 Sign out :
+9. #### 🚪 Sign out :
 
     *   Click on the "Sign Out" item in the navigation drawer to sign out of the application.
 
